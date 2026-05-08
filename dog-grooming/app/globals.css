@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #ff6b1a;
+  --color-brand-light: #ff8c42;
+  --color-brand-pale: #fff3ec;
+  --color-brand-muted: #fff8f5;
+  --color-surface: #faf7f4;
+  --color-surface-secondary: #f0ebe4;
+  --color-card: #ffffff;
+  --color-border: #ede8e1;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #888888;
+  --color-text-muted: #aaaaaa;
+
+  --font-nunito: 'Nunito', sans-serif;
+  --font-nunito-sans: 'Nunito Sans', sans-serif;
+}
+
+/* ─── Scrollbar hide utility ─── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─── App shell ─── */
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-surface);
+}
+
+.app-shell {
+  width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  position: relative;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    min-height: 100vh;
+    padding: 0 20px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .app-shell {
+    padding: 0 36px;
+  }
+}
