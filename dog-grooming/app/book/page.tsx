@@ -509,7 +509,7 @@ function ConfirmationPage({ draft, onCreateAccount }: { draft: BookingDraft; onC
             { label: 'Service', value: draft.service?.name ?? '—' },
             { label: 'Date', value: draft.date ?? '—' },
             { label: 'Time', value: draft.time ?? '—' },
-            selectedStyle && { label: 'Style', value: selectedStyle.name },
+             ...(selectedStyle ? [{ label: 'Style', value: selectedStyle.name }] : []),
           ]
             .filter(Boolean)
             .map(({ label, value }) => (
