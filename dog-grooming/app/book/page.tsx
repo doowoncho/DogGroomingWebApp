@@ -564,7 +564,7 @@ export default function BookPage() {
     phone:     '',
     notes:     '',
     dogSize:   null,
-    breedId:   null,
+    breed:   null,
   })
 
   const updateDraft = (fields: Partial<BookingDraft>) =>
