@@ -9,15 +9,6 @@ export interface Service {
   icon: string // Tabler icon class name
 }
 
-// ─── Dog ────────────────────────────────────────────────────────────────────
-export type DogSize = 'small' | 'medium' | 'large' | 'xlarge'
-
-export interface DogSizeOption {
-  id: DogSize
-  label: string
-  weight: string
-}
-
 export interface Breed {
   id: string
   name: string
@@ -42,7 +33,6 @@ export interface BookingDraft {
   email: string
   phone: string
   notes: string
-  dogSize: DogSize | null
   breed: string | null
 }
 

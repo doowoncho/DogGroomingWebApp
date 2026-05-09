@@ -1,17 +1,10 @@
-import type { Service, DogSizeOption, Breed } from '@/types'
+import type { Service, Breed, GroomingStyle } from '@/types'
 
 export const SERVICES: Service[] = [
   { id: 'bath',  name: 'Bath & brush',  duration: '60 min',  price: '$45',  icon: 'ti-droplet'   },
   { id: 'groom', name: 'Full groom',    duration: '120 min', price: '$75',  icon: 'ti-scissors'  },
   { id: 'spa',   name: 'Spa package',   duration: '150 min', price: '$110', icon: 'ti-sparkles'  },
   { id: 'nail',  name: 'Nail trim',     duration: '20 min',  price: '$20',  icon: 'ti-heart'     },
-]
-
-export const DOG_SIZES: DogSizeOption[] = [
-  { id: 'small',  label: 'Small',       weight: 'Under 20 lbs' },
-  { id: 'medium', label: 'Medium',      weight: '20 – 50 lbs'  },
-  { id: 'large',  label: 'Large',       weight: '50 – 90 lbs'  },
-  { id: 'xlarge', label: 'Extra large', weight: '90+ lbs'      },
 ]
 
 export const BREEDS: Breed[] = [

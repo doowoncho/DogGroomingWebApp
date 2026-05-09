@@ -563,7 +563,6 @@ export default function BookPage() {
     email:     '',
     phone:     '',
     notes:     '',
-    dogSize:   null,
     breed:   null,
   })
 
