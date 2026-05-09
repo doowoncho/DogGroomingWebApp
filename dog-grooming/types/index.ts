@@ -23,15 +23,27 @@ export interface Breed {
   name: string
 }
 
+// ─── Grooming Styles ────────────────────────────────────────────────────────
+export interface GroomingStyle {
+  id: string
+  name: string
+  desc: string
+  emoji: string
+}
+
 // ─── Booking ─────────────────────────────────────────────────────────────────
 export interface BookingDraft {
   service: Service | null
   date: string | null
   time: string | null
+  styleId: string | null
+  photoUrl: string | null
   dogName: string
+  email: string
+  phone: string
   notes: string
   dogSize: DogSize | null
-  breedId: string | null
+  breed: string | null
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────

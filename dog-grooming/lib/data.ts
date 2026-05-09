@@ -38,3 +38,13 @@ export const TIME_SLOTS: { time: string; available: boolean }[] = [
   { time: '4:00 PM',  available: true  },
   { time: '5:00 PM',  available: false },
 ]
+
+// Grooming styles
+export const GROOMING_STYLES: GroomingStyle[] = [
+  { id: 'short',      name: 'Short & Clean',  desc: 'All-over short trim', emoji: '✂️' },
+  { id: 'fluffy',     name: 'Fluffy',         desc: 'Longer, voluminous look', emoji: '☁️' },
+  { id: 'teddy',      name: 'Teddy Bear',     desc: 'Rounded, cute style', emoji: '🧸' },
+  { id: 'puppy',      name: 'Puppy Cut',      desc: 'Uniform, low-maintenance', emoji: '🐕' },
+  { id: 'show',       name: 'Show Cut',       desc: 'Full breed standard', emoji: '🏆' },
+  { id: 'sanitary',   name: 'Sanitary Trim',  desc: 'Health-focused grooming', emoji: '✨' },
+]

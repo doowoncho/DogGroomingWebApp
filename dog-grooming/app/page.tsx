@@ -4,14 +4,14 @@ import BottomNav from '@/components/layout/BottomNav'
 import { SERVICES } from '@/lib/data'
 
 const PHOTOS = [
-  { name: 'Mochi',   breed: 'Golden Retriever', bg: 'from-[#ffd89b] to-[#ff8c42]'  },
+  { name: 'Charlie',   breed: 'Golden Retriever', bg: 'from-[#ffd89b] to-[#ff8c42]'  },
   { name: 'Biscuit', breed: 'Labrador',          bg: 'from-[#d4ecd4] to-[#7bc47b]'  },
   { name: 'Coco',    breed: 'Poodle',            bg: 'from-[#ddd6f3] to-[#a18cd1]'  },
   { name: 'Daisy',   breed: 'Shih Tzu',          bg: 'from-[#fbc2eb] to-[#e2789e]'  },
 ]
 
 const TRUST = [
-  { icon: 'ti-certificate', label: 'Certified groomers' },
+  { icon: 'ti-certificate', label: 'Korean Certified groomer' },
   { icon: 'ti-home-heart',  label: 'Cage-free salon'    },
   { icon: 'ti-star',        label: '5★ on Google'       },
 ]
@@ -21,7 +21,7 @@ const REVIEWS = [
     initials: 'SK',
     name: 'Sarah K.',
     breed: 'Golden Retriever owner',
-    text: '"Mochi came home looking absolutely incredible. The team is so gentle and professional — we\'ll never go anywhere else."',
+    text: '"Dog came home looking absolutely incredible. Kiin is so gentle and professional — we\'ll never go anywhere else."',
     avatarBg: 'bg-brand-pale',
     avatarText: 'text-brand',
   },
@@ -43,18 +43,18 @@ export default function HomePage() {
       <div className="flex-1 overflow-y-auto no-scrollbar">
         {/* Greeting */}
         <div className="px-5 pt-1">
-          <p className="text-[13px] text-text-muted font-semibold">Good morning 👋</p>
+          <p className="text-[13px] text-text-muted font-semibold">At-Home grooming salon</p>
           <h2 className="font-nunito font-extrabold text-xl text-text-primary mt-0.5">
-            Find the perfect groom
+            Private, low-stress grooming for a calmer experience
           </h2>
         </div>
 
         {/* Hero banner */}
         <div className="mx-5 mt-4 rounded-[20px] bg-gradient-to-r from-brand to-brand-light p-5 flex items-center justify-between">
           <div>
-            <span className="bg-white/25 text-white text-[11px] font-bold px-3 py-1 rounded-full tracking-wide inline-block mb-2">
+            {/* <span className="bg-white/25 text-white text-[11px] font-bold px-3 py-1 rounded-full tracking-wide inline-block mb-2">
               10% off this week
-            </span>
+            </span> */}
             <h3 className="font-nunito font-extrabold text-xl text-white leading-tight mb-3">
               Book your first<br />session today
             </h3>
@@ -78,11 +78,11 @@ export default function HomePage() {
         </div>
 
         <div className="px-4">
-          <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+          <div className="flex justify-center gap-4 overflow-x-auto no-scrollbar pb-1">
             {PHOTOS.map((p) => (
               <div
                 key={p.name}
-                className={`min-w-[150px] h-[180px] rounded-[18px] bg-gradient-to-br ${p.bg} flex-shrink-0 relative overflow-hidden flex items-center justify-center`}
+                className={`min-w-[170px] h-[180px] rounded-[18px] bg-gradient-to-br ${p.bg} flex-shrink-0 relative overflow-hidden flex items-center justify-center`}
               >
                 <i
                   className="ti ti-dog text-[60px] text-white/60"
@@ -115,7 +115,7 @@ export default function HomePage() {
         {/* Services */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <h3 className="font-nunito font-extrabold text-[17px] text-text-primary">Our services</h3>
-          <Link href="/book" className="text-[13px] text-brand font-semibold">See all</Link>
+          {/* <Link href="/book" className="text-[13px] text-brand font-semibold">See all</Link> */}
         </div>
         <div className="px-4">
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">

@@ -43,13 +43,15 @@ body {
 
 @media (min-width: 768px) {
   .app-shell {
+    width: 100%;
+    max-width: 900px;
     min-height: 100vh;
-    padding: 0 20px;
+    margin: auto;
   }
 }
 
 @media (min-width: 1280px) {
   .app-shell {
-    padding: 0 36px;
+    max-width: 900px;
   }
 }

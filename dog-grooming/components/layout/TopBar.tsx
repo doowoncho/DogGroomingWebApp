@@ -8,7 +8,7 @@ interface TopBarProps {
 
 export default function TopBar({ showBack, backHref = '/', title }: TopBarProps) {
   return (
-    <header className="flex items-center justify-between px-5 pt-4 pb-2 md:px-8 xl:px-16">
+    <header className="flex items-center justify-between px-5 pt-4 pb-5 md:px-8">
       <div className="flex items-center gap-3">
         {showBack ? (
           <Link
@@ -20,7 +20,13 @@ export default function TopBar({ showBack, backHref = '/', title }: TopBarProps)
           </Link>
         ) : (
           <span className="w-9 h-9 rounded-full bg-surface-secondary flex items-center justify-center">
+            <Link
+            href={backHref}
+            className="w-9 h-9 rounded-full bg-surface-secondary flex items-center justify-center"
+            aria-label="Go back"
+          >
             <i className="ti ti-dog text-[18px] text-text-secondary" aria-hidden="true" />
+          </Link>
           </span>
         )}
 
@@ -28,7 +34,7 @@ export default function TopBar({ showBack, backHref = '/', title }: TopBarProps)
           <span className="font-nunito font-extrabold text-xl text-text-primary">{title}</span>
         ) : (
           <span className="font-nunito font-extrabold text-[22px] text-text-primary">
-            paw<span className="text-brand">co</span>
+            Kiin's<span className="text-brand"> pet grooming</span>
           </span>
         )}
       </div>

@@ -3,11 +3,9 @@ import TopBar from '@/components/layout/TopBar'
 import BottomNav from '@/components/layout/BottomNav'
 
 const MENU_ITEMS = [
-  { icon: 'ti-dog',          label: 'My pets'          },
-  { icon: 'ti-calendar',     label: 'Booking history'  },
-  { icon: 'ti-bell',         label: 'Notifications'    },
-  { icon: 'ti-lock',         label: 'Change password'  },
-  { icon: 'ti-help-circle',  label: 'Help & support'   },
+  { icon: 'ti-dog',      label: 'My pets',         href: '/account/pets' },
+  { icon: 'ti-calendar', label: 'Booking history', href: '/account/bookings' },
+  // { icon: 'ti-lock',     label: 'Change password', href: '/account/password' },
 ]
 
 export default function AccountPage() {
@@ -27,16 +25,17 @@ export default function AccountPage() {
         </div>
 
         {/* Menu */}
-        <div className="px-5">
-          {MENU_ITEMS.map(({ icon, label }) => (
-            <button
+        <div className="px-10">
+          {MENU_ITEMS.map(({ icon, label, href }) => (
+            <Link
               key={label}
+              href={href}
               className="flex items-center gap-3.5 w-full py-3.5 border-b border-border last:border-none"
             >
               <i className={`ti ${icon} text-[20px] text-text-secondary w-6`} aria-hidden="true" />
               <span className="flex-1 text-[14px] text-text-primary text-left">{label}</span>
               <i className="ti ti-chevron-right text-[16px] text-text-muted" aria-hidden="true" />
-            </button>
+            </Link>
           ))}
         </div>
 
