@@ -2,13 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { cn } from '@/lib/utils'
 
 export default function LoginPage() {
   const [isSignup, setIsSignup] = useState(false)
 
   return (
-    <div className="app-shell flex flex-col h-dvh">
+    <div>
       {/* Back button */}
       <div className="px-5 pt-4">
         <Link

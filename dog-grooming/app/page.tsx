@@ -1,6 +1,4 @@
 import Link from 'next/link'
-import TopBar from '@/components/layout/TopBar'
-import BottomNav from '@/components/layout/BottomNav'
 import { SERVICES } from '@/lib/data'
 
 const PHOTOS = [
@@ -37,9 +35,7 @@ const REVIEWS = [
 
 export default function HomePage() {
   return (
-    <div className="app-shell flex flex-col h-dvh">
-      <TopBar />
-
+    <div>
       <div className="flex-1 overflow-y-auto no-scrollbar">
         {/* Greeting */}
         <div className="px-5 pt-1">
@@ -158,8 +154,6 @@ export default function HomePage() {
 
         <div className="h-5" />
       </div>
-
-      <BottomNav />
     </div>
   )
 }

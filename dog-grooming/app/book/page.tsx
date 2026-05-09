@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { SERVICES, TIME_SLOTS, GROOMING_STYLES } from '@/lib/data'
 import type { BookingDraft, Service } from '@/types'
-import BottomNav from '@/components/layout/BottomNav'
 import AccountCreationPage from '../account/AccountCreationPage'
 
 type Step = 1 | 2 | 3 | 4
@@ -604,7 +603,7 @@ export default function BookPage() {
   // Show account creation page
   if (isCreatingAccount) {
     return (
-      <div className="app-shell flex flex-col h-dvh">
+      <div>
         <div className="flex items-center gap-3 px-5 pt-4 pb-4 border-b border-border">
           <button
             onClick={() => setIsCreatingAccount(false)}
@@ -628,7 +627,6 @@ export default function BookPage() {
             }}
           />
         </div>
-        <BottomNav />
       </div>
     )
   }
@@ -636,20 +634,19 @@ export default function BookPage() {
   // Show confirmation page
   if (isConfirmed) {
     return (
-      <div className="app-shell flex flex-col h-dvh">
+      <div>
         <div className="flex-1 overflow-y-auto no-scrollbar">
           <ConfirmationPage 
             draft={draft} 
             onCreateAccount={() => setIsCreatingAccount(true)}
           />
         </div>
-        <BottomNav />
       </div>
     )
   }
 
   return (
-    <div className="app-shell flex flex-col h-dvh">
+    <div>
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-4">
         <button
@@ -710,8 +707,6 @@ export default function BookPage() {
           {step === 4 ? 'Confirm booking' : 'Continue'}
         </button>
       </div>
-
-      <BottomNav />
     </div>
   )
 }

@@ -1,6 +1,4 @@
 import Link from 'next/link'
-import TopBar from '@/components/layout/TopBar'
-import BottomNav from '@/components/layout/BottomNav'
 
 const MENU_ITEMS = [
   { icon: 'ti-dog',      label: 'My pets',         href: '/account/pets' },
@@ -10,8 +8,7 @@ const MENU_ITEMS = [
 
 export default function AccountPage() {
   return (
-    <div className="app-shell flex flex-col h-dvh">
-      <TopBar />
+    <div>
       <div className="flex-1 overflow-y-auto no-scrollbar">
         {/* Profile header */}
         <div className="flex items-center gap-3.5 px-5 pt-5 pb-5">
@@ -50,7 +47,6 @@ export default function AccountPage() {
         </div>
         <div className="h-6" />
       </div>
-      <BottomNav />
     </div>
   )
 }

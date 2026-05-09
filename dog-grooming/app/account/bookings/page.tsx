@@ -1,5 +1,3 @@
-import TopBar from '@/components/layout/TopBar'
-import BottomNav from '@/components/layout/BottomNav'
 import Link from 'next/link'
 
 const BOOKINGS = [
@@ -23,9 +21,7 @@ const BOOKINGS = [
 
 export default function BookingHistoryPage() {
   return (
-    <div className="app-shell flex flex-col h-dvh bg-surface">
-      <TopBar />
-
+    <div>
       <div className="flex-1 overflow-y-auto no-scrollbar">
        <div className="px-5 pt-5">
         <Link
@@ -90,8 +86,6 @@ export default function BookingHistoryPage() {
 
         <div className="h-8" />
       </div>
-
-      <BottomNav />
     </div>
   )
 }
