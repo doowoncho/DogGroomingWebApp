@@ -1,10 +1,10 @@
 import type { Service, Breed, GroomingStyle } from '@/types'
 
-export const SERVICES: Service[] = [
-  { id: 'bath',  name: 'Bath & brush',  duration: '60 min',  price: '$45',  icon: 'ti-droplet'   },
-  { id: 'groom', name: 'Full groom',    duration: '120 min', price: '$75',  icon: 'ti-scissors'  },
-  { id: 'spa',   name: 'Spa package',   duration: '150 min', price: '$110', icon: 'ti-sparkles'  },
-  { id: 'nail',  name: 'Nail trim',     duration: '20 min',  price: '$20',  icon: 'ti-heart'     },
+export const SERVICES: Omit<Service, 'name'>[] = [
+  { id: 'bath',  duration: '60 min',  price: '$45',  icon: 'ti-droplet'  },
+  { id: 'groom', duration: '120 min', price: '$75',  icon: 'ti-scissors' },
+  { id: 'spa',   duration: '150 min', price: '$110', icon: 'ti-sparkles' },
+  { id: 'nail',  duration: '20 min',  price: '$20',  icon: 'ti-heart'    },
 ]
 
 export const BREEDS: Breed[] = [
@@ -33,11 +33,11 @@ export const TIME_SLOTS: { time: string; available: boolean }[] = [
 ]
 
 // Grooming styles
-export const GROOMING_STYLES: GroomingStyle[] = [
-  { id: 'short',      name: 'Short & Clean',  desc: 'All-over short trim', emoji: '✂️' },
-  { id: 'fluffy',     name: 'Fluffy',         desc: 'Longer, voluminous look', emoji: '☁️' },
-  { id: 'teddy',      name: 'Teddy Bear',     desc: 'Rounded, cute style', emoji: '🧸' },
-  { id: 'puppy',      name: 'Puppy Cut',      desc: 'Uniform, low-maintenance', emoji: '🐕' },
-  { id: 'show',       name: 'Show Cut',       desc: 'Full breed standard', emoji: '🏆' },
-  { id: 'sanitary',   name: 'Sanitary Trim',  desc: 'Health-focused grooming', emoji: '✨' },
+export const GROOMING_STYLES: Omit<GroomingStyle, 'name' | 'desc'>[] = [
+  { id: 'short',    emoji: '✂️' },
+  { id: 'fluffy',   emoji: '☁️' },
+  { id: 'teddy',    emoji: '🧸' },
+  { id: 'puppy',    emoji: '🐕' },
+  { id: 'show',     emoji: '🏆' },
+  { id: 'sanitary', emoji: '✨' },
 ]

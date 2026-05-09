@@ -4,6 +4,7 @@ import './globals.css'
 
 import TopBar from '@/components/layout/TopBar'
 import BottomNav from '@/components/layout/BottomNav'
+import { LanguageProvider } from '@/components/LanguageContext'
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -40,15 +41,17 @@ export default function RootLayout({
       <body
         className={`${nunito.variable} ${nunitoSans.variable} font-nunito-sans bg-surface antialiased`}
       >
-        <div className="app-shell flex flex-col h-dvh">
-          <TopBar />
+        <LanguageProvider>
+          <div className="app-shell flex flex-col h-dvh">
+            <TopBar />
 
-          <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
-            {children}
+            <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
+              {children}
+            </div>
+
+            <BottomNav />
           </div>
-
-          <BottomNav />
-        </div>
+        </LanguageProvider>
       </body>
     </html>
   )

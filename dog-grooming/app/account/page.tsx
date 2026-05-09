@@ -1,12 +1,18 @@
-import Link from 'next/link'
+'use client'
 
-const MENU_ITEMS = [
-  { icon: 'ti-dog',      label: 'My pets',         href: '/account/pets' },
-  { icon: 'ti-calendar', label: 'Booking history', href: '/account/bookings' },
-  // { icon: 'ti-lock',     label: 'Change password', href: '/account/password' },
-]
+import Link from 'next/link'
+import { useLanguage } from '@/components/LanguageContext'
+import { translations } from '@/lib/translations'
 
 export default function AccountPage() {
+  const { language } = useLanguage()
+  const t = translations[language]
+
+  const MENU_ITEMS = [
+    { icon: 'ti-dog',      label: t.account.myPets,        href: '/account/pets' },
+    { icon: 'ti-calendar', label: t.account.bookingHistory, href: '/account/bookings' },
+  ]
+
   return (
     <div>
       <div className="flex-1 overflow-y-auto no-scrollbar">
@@ -25,7 +31,7 @@ export default function AccountPage() {
         <div className="px-10">
           {MENU_ITEMS.map(({ icon, label, href }) => (
             <Link
-              key={label}
+              key={href}
               href={href}
               className="flex items-center gap-3.5 w-full py-3.5 border-b border-border last:border-none"
             >
@@ -42,7 +48,7 @@ export default function AccountPage() {
             href="/"
             className="w-full border border-border rounded-full py-3.5 text-[14px] font-bold font-nunito text-text-secondary text-center block"
           >
-            Sign out
+            {t.account.signOut}
           </Link>
         </div>
         <div className="h-6" />

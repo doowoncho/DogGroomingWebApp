@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useLanguage } from '@/components/LanguageContext'
 
 interface TopBarProps {
   showBack?: boolean
@@ -7,6 +10,8 @@ interface TopBarProps {
 }
 
 export default function TopBar({ showBack, backHref = '/', title }: TopBarProps) {
+  const { language, setLanguage } = useLanguage()
+
   return (
     <header className="flex items-center justify-between px-5 pt-4 pb-5 md:px-8">
       <div className="flex items-center gap-3">
@@ -21,9 +26,9 @@ export default function TopBar({ showBack, backHref = '/', title }: TopBarProps)
         ) : (
           <span className="w-9 h-9 rounded-full bg-surface-secondary flex items-center justify-center">
             <Link
-            href={backHref}
+            href="/"
             className="w-9 h-9 rounded-full bg-surface-secondary flex items-center justify-center"
-            aria-label="Go back"
+            aria-label="Home"
           >
             <i className="ti ti-dog text-[18px] text-text-secondary" aria-hidden="true" />
           </Link>
@@ -34,30 +39,60 @@ export default function TopBar({ showBack, backHref = '/', title }: TopBarProps)
           <span className="font-nunito font-extrabold text-xl text-text-primary">{title}</span>
         ) : (
           <span className="font-nunito font-extrabold text-[22px] text-text-primary">
-            Kiin's<span className="text-brand"> pet grooming</span>
+            Mung Mung's<span className="text-brand"> grooming</span>
           </span>
         )}
       </div>
 
       <div className="hidden items-center gap-8 md:flex">
         <Link href="/" className="text-[13px] font-semibold text-text-secondary transition hover:text-text-primary">
-          Home
+          {language === 'en' ? 'Home' : '홈'}
         </Link>
         <Link href="/book" className="text-[13px] font-semibold text-text-secondary transition hover:text-text-primary">
-          Book
+          {language === 'en' ? 'Book' : '예약'}
         </Link>
         <Link href="/account" className="text-[13px] font-semibold text-text-secondary transition hover:text-text-primary">
-          Account
+          {language === 'en' ? 'Account' : '계정'}
         </Link>
+        <div className="flex items-center gap-2 pl-4 border-l border-border">
+          <button
+            onClick={() => setLanguage('en')}
+            className={`text-[12px] font-bold px-2 py-1 rounded transition ${
+              language === 'en'
+                ? 'bg-brand text-white'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            EN
+          </button>
+          <button
+            onClick={() => setLanguage('ko')}
+            className={`text-[12px] font-bold px-2 py-1 rounded transition ${
+              language === 'ko'
+                ? 'bg-brand text-white'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            한
+          </button>
+        </div>
       </div>
 
-      <Link
-        href="/account"
-        className="w-9 h-9 rounded-full bg-brand-light flex items-center justify-center font-nunito font-bold text-sm text-white md:hidden"
-        aria-label="Account"
-      >
-        A
-      </Link>
+      <div className="flex items-center gap-2 md:hidden">
+        <button
+          onClick={() => setLanguage(language === 'en' ? 'ko' : 'en')}
+          className="text-[11px] font-bold px-2 py-1.5 rounded bg-surface-secondary text-text-secondary"
+        >
+          {language === 'en' ? 'EN' : '한'}
+        </button>
+        <Link
+          href="/account"
+          className="w-9 h-9 rounded-full bg-brand-light flex items-center justify-center font-nunito font-bold text-sm text-white"
+          aria-label="Account"
+        >
+          A
+        </Link>
+      </div>
     </header>
   )
 }

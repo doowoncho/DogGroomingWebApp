@@ -3,19 +3,26 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useLanguage } from '@/components/LanguageContext'
 
 const NAV_ITEMS = [
-  { href: '/',       icon: 'ti-home',           label: 'Home'    },
-  { href: '/book',   icon: 'ti-calendar',        label: 'Book'    },
-  { href: '/account',icon: 'ti-user',            label: 'Account' },
+  { href: '/',       icon: 'ti-home',     labelKey: 'home'    },
+  { href: '/book',   icon: 'ti-calendar', labelKey: 'book'    },
+  { href: '/account',icon: 'ti-user',     labelKey: 'account' },
 ]
 
 export default function BottomNav() {
   const pathname = usePathname()
+  const { language } = useLanguage()
+
+  const labels = {
+    en: { home: 'Home', book: 'Book', account: 'Account' },
+    ko: { home: '홈', book: '예약', account: '계정' },
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex border-t border-border bg-white py-2.5 md:hidden">
-      {NAV_ITEMS.map(({ href, icon, label }) => {
+      {NAV_ITEMS.map(({ href, icon, labelKey }) => {
         const active = pathname === href
         return (
           <Link
@@ -27,7 +34,7 @@ export default function BottomNav() {
             )}
           >
             <i className={cn('ti text-[22px]', icon)} aria-hidden="true" />
-            <span>{label}</span>
+            <span>{labels[language][labelKey as keyof typeof labels['en']]}</span>
           </Link>
         )
       })}
