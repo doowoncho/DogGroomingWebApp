@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { SERVICES, TIME_SLOTS, GROOMING_STYLES } from '@/lib/data'
+import { SERVICES, GROOMING_STYLES } from '@/lib/data'
 import { useLanguage } from '@/components/LanguageContext'
 import { translations } from '@/lib/translations'
 import type { BookingDraft, Service } from '@/types'
@@ -130,6 +130,8 @@ function DateTimeStep({
   t: any
 }) {
   const [viewingDate, setViewingDate] = useState(new Date(2026, 4, 8))
+  const [slots, setSlots] = useState<{ time: string; available: boolean }[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
 
   const year = viewingDate.getFullYear()
   const month = viewingDate.getMonth()
@@ -140,6 +142,28 @@ function DateTimeStep({
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const monthNames = t.months
+
+const [slotsCache, setSlotsCache] = useState<Record<string, { time: string; available: boolean }[]>>({})
+
+async function fetchSlots(date: string) {
+  // return cached result if already fetched
+  if (slotsCache[date]) {
+    setSlots(slotsCache[date])
+    return
+  }
+
+  setLoadingSlots(true)
+  try {
+    const res = await fetch(`/api/availability?date=${encodeURIComponent(date)}`)
+    const json = await res.json()
+    setSlots(json.slots ?? [])
+    setSlotsCache((prev) => ({ ...prev, [date]: json.slots ?? [] }))
+  } catch (err) {
+    console.error('Failed to fetch slots:', err)
+  } finally {
+    setLoadingSlots(false)
+  }
+}
 
   return (
     <div>
@@ -187,7 +211,10 @@ function DateTimeStep({
               <button
                 key={d}
                 disabled={isPast}
-                onClick={() => onDateSelect(dateStr)}
+                onClick={() => {
+                  onDateSelect(dateStr)
+                  fetchSlots(dateStr)
+                }}
                 className={cn(
                   'aspect-square flex items-center justify-center text-[13px] font-semibold font-nunito rounded-full transition-colors',
                   isPast && 'text-border cursor-not-allowed',
@@ -208,23 +235,34 @@ function DateTimeStep({
           <p className="text-[12px] font-semibold text-text-muted uppercase tracking-wide mb-2">
             {t.booking.availableTimes}
           </p>
-          <div className="grid grid-cols-3 gap-2">
-            {TIME_SLOTS.map(({ time, available }) => (
-              <button
-                key={time}
-                disabled={!available}
-                onClick={() => available && onTimeSelect(time)}
-                className={cn(
-                  'py-2.5 border rounded-[12px] text-[13px] font-semibold font-nunito transition-colors',
-                  !available && 'text-border bg-surface border-border cursor-not-allowed',
-                  available && selectedTime !== time && 'text-text-primary bg-white border-border hover:border-brand',
-                  selectedTime === time && 'bg-brand text-white border-brand',
-                )}
-              >
-                {time}
-              </button>
-            ))}
-          </div>
+          {loadingSlots ? (
+            <div className="grid grid-cols-3 gap-2">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="py-2.5 border border-border rounded-[12px] bg-surface-secondary animate-pulse"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {slots.map(({ time, available }) => (
+                <button
+                  key={time}
+                  disabled={!available}
+                  onClick={() => available && onTimeSelect(time)}
+                  className={cn(
+                    'py-2.5 border rounded-[12px] text-[13px] font-semibold font-nunito transition-colors',
+                    !available && 'text-border bg-surface border-border cursor-not-allowed',
+                    available && selectedTime !== time && 'text-text-primary bg-white border-border hover:border-brand',
+                    selectedTime === time && 'bg-brand text-white border-brand',
+                  )}
+                >
+                  {time}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

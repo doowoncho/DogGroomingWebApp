@@ -1,10 +1,10 @@
 import type { Service, Breed, GroomingStyle } from '@/types'
 
 export const SERVICES: Omit<Service, 'name'>[] = [
-  { id: 'bath',  duration: '60 min',  price: '$45',  icon: 'ti-droplet'  },
-  { id: 'groom', duration: '120 min', price: '$75',  icon: 'ti-scissors' },
-  { id: 'spa',   duration: '150 min', price: '$110', icon: 'ti-sparkles' },
-  { id: 'nail',  duration: '20 min',  price: '$20',  icon: 'ti-heart'    },
+  { id: 'bath',  duration: '60 min',  price: '$45',  icon: 'ti-droplet', slots: 1  },
+  { id: 'groom', duration: '120 min', price: '$75',  icon: 'ti-scissors', slots: 2 },
+  { id: 'spa',   duration: '150 min', price: '$110', icon: 'ti-sparkles', slots: 3 },
+  { id: 'nail',  duration: '20 min',  price: '$20',  icon: 'ti-heart',    slots: 1 },
 ]
 
 export const BREEDS: Breed[] = [
@@ -18,18 +18,6 @@ export const BREEDS: Breed[] = [
   { id: 'dachshund', name: 'Dachshund'        },
   { id: 'boxer',     name: 'Boxer'            },
   { id: 'corgi',     name: 'Corgi'            },
-]
-
-// Time slots — in a real app these come from the API based on selected date
-export const TIME_SLOTS: { time: string; available: boolean }[] = [
-  { time: '9:00 AM',  available: true  },
-  { time: '10:00 AM', available: false },
-  { time: '11:00 AM', available: true  },
-  { time: '12:00 PM', available: false },
-  { time: '2:00 PM',  available: true  },
-  { time: '3:00 PM',  available: true  },
-  { time: '4:00 PM',  available: true  },
-  { time: '5:00 PM',  available: false },
 ]
 
 // Grooming styles

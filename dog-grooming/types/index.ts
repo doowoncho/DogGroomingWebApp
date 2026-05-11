@@ -7,6 +7,7 @@ export interface Service {
   duration: string
   price: string
   icon: string // Tabler icon class name
+  slots: number // Number of time slots this service occupies
 }
 
 export interface Breed {
