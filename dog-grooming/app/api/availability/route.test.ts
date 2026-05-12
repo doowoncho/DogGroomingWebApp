@@ -10,6 +10,11 @@ import { GET } from './route'
 const DATE = 'May 11, 2026'
 const ENCODED_DATE = 'May%2011,%202026'
 
+// Helper to build the joined data shape
+function booking(time: string, slots: number) {
+  return { time, services: { slots } }
+}
+
 function mockSupabase(data: any[], error: any = null) {
   const mockEq = jest.fn().mockResolvedValue({ data, error })
   const mockSelect = jest.fn().mockReturnValue({ eq: mockEq })
@@ -44,7 +49,7 @@ describe('GET /api/availability', () => {
 
   // ─── Single slot booking ─────────────────────────────────────────────────
   it('blocks 1 slot for a 1-slot booking', async () => {
-    mockSupabase([{ time: '9:00 AM', duration_slots: 1 }])
+    mockSupabase([booking('9:00 AM', 1)])
 
     const res = await GET(new Request(`http://localhost/api/availability?date=${ENCODED_DATE}`))
     const { slots } = await res.json()
@@ -55,7 +60,7 @@ describe('GET /api/availability', () => {
 
   // ─── Multi-slot booking ──────────────────────────────────────────────────
   it('blocks 2 consecutive slots for a 2-slot booking', async () => {
-    mockSupabase([{ time: '9:00 AM', duration_slots: 2 }])
+    mockSupabase([booking('9:00 AM', 2)])
 
     const res = await GET(new Request(`http://localhost/api/availability?date=${ENCODED_DATE}`))
     const { slots } = await res.json()
@@ -66,7 +71,7 @@ describe('GET /api/availability', () => {
   })
 
   it('blocks 3 consecutive slots for a 3-slot booking', async () => {
-    mockSupabase([{ time: '2:00 PM', duration_slots: 3 }])
+    mockSupabase([booking('2:00 PM', 3)])
 
     const res = await GET(new Request(`http://localhost/api/availability?date=${ENCODED_DATE}`))
     const { slots } = await res.json()
@@ -80,8 +85,8 @@ describe('GET /api/availability', () => {
   // ─── Multiple bookings ───────────────────────────────────────────────────
   it('handles multiple bookings on the same day', async () => {
     mockSupabase([
-      { time: '9:00 AM',  duration_slots: 1 },
-      { time: '11:00 AM', duration_slots: 2 },
+      booking('9:00 AM',  1),
+      booking('11:00 AM', 2),
     ])
 
     const res = await GET(new Request(`http://localhost/api/availability?date=${ENCODED_DATE}`))
@@ -95,13 +100,24 @@ describe('GET /api/availability', () => {
   })
 
   it('does not overflow past the last slot', async () => {
-    mockSupabase([{ time: '5:00 PM', duration_slots: 3 }])
+    mockSupabase([booking('5:00 PM', 3)])
 
     const res = await GET(new Request(`http://localhost/api/availability?date=${ENCODED_DATE}`))
     const { slots } = await res.json()
 
     expect(slots.find((s: any) => s.time === '5:00 PM').available).toBe(false)
-    expect(slots).toHaveLength(8) // no crash, correct length
+    expect(slots).toHaveLength(8)
+  })
+
+  // ─── Null/missing service join ───────────────────────────────────────────
+  it('defaults to 1 slot when services join returns null', async () => {
+    mockSupabase([{ time: '9:00 AM', services: null }])
+
+    const res = await GET(new Request(`http://localhost/api/availability?date=${ENCODED_DATE}`))
+    const { slots } = await res.json()
+
+    expect(slots.find((s: any) => s.time === '9:00 AM').available).toBe(false)
+    expect(slots.find((s: any) => s.time === '10:00 AM').available).toBe(true)
   })
 
   // ─── DB call verification ────────────────────────────────────────────────
@@ -111,7 +127,7 @@ describe('GET /api/availability', () => {
     await GET(new Request(`http://localhost/api/availability?date=${ENCODED_DATE}`))
 
     expect(mockFrom).toHaveBeenCalledWith('bookings')
-    expect(mockSelect).toHaveBeenCalledWith('time, duration_slots')
+    expect(mockSelect).toHaveBeenCalledWith('time, services(slots)')
     expect(mockEq).toHaveBeenCalledWith('date', DATE)
   })
 })

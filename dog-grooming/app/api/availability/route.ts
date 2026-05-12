@@ -20,34 +20,38 @@ const ALL_SLOTS = [
 ]
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const date = searchParams.get('date')
+    const { searchParams } = new URL(req.url)
+    const date = searchParams.get('date')
 
 
-  if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 })
+    if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 })
 
-  const supabase = getSupabase()
-  const { data, error } = await supabase
+    const supabase = getSupabase()
+    const { data, error } = await supabase
     .from('bookings')
-    .select('time, duration_slots')
+    .select('time, services(slots)')
     .eq('date', date)
 
-const blockedSlots = new Set<string>()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-for (const booking of data ?? []) {
-  const startIndex = ALL_SLOTS.indexOf(booking.time)
-  if (startIndex === -1) continue
+    const blockedSlots = new Set<string>()
 
-  for (let i = 0; i < (booking.duration_slots ?? 1); i++) {
-    const slot = ALL_SLOTS[startIndex + i]
-    if (slot) blockedSlots.add(slot)
-  }
-}
+    for (const booking of data ?? []) {
+    const startIndex = ALL_SLOTS.indexOf(booking.time)
+    if (startIndex === -1) continue
 
-const slots = ALL_SLOTS.map((time) => ({
-  time,
-  available: !blockedSlots.has(time),
-}))
+    const slots = (booking.services as any)?.slots ?? 1
+
+    for (let i = 0; i < slots; i++) {
+        const slot = ALL_SLOTS[startIndex + i]
+        if (slot) blockedSlots.add(slot)
+    }
+    }
+
+    const slots = ALL_SLOTS.map((time) => ({
+    time,
+    available: !blockedSlots.has(time),
+    }))
 
   return NextResponse.json({ slots })
 }

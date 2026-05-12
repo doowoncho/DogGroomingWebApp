@@ -3,10 +3,11 @@
 import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { SERVICES, GROOMING_STYLES } from '@/lib/data'
+import { GROOMING_STYLES } from '@/lib/data'
 import { useLanguage } from '@/components/LanguageContext'
 import { translations } from '@/lib/translations'
 import type { BookingDraft, Service } from '@/types'
+import { useServices } from '@/lib/hooks/useServices'
 
 type Step = 1 | 2 | 3 | 4
 
@@ -68,6 +69,7 @@ function StepIndicator({ current, total }: { current: Step; total: number }) {
 function ServiceStep({
   selected,
   onSelect,
+  language,
   t,
 }: {
   selected: Service | null
@@ -75,18 +77,37 @@ function ServiceStep({
   language: string
   t: any
 }) {
+  const { services, loading, error  } = useServices(language, t)
+
+   console.log('services:', services, 'loading:', loading, 'error:', error)
+
+  if (loading) {
+    return (
+      <div className="px-5 pt-3.5 space-y-2.5">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-[76px] rounded-[16px] bg-surface-secondary animate-pulse" />
+        ))}
+      </div>
+    )
+  }
+
+    if (error) {
+    return (
+      <p className="px-5 pt-3.5 text-[14px] text-red-500">{error}</p>
+    )
+  }
+
   return (
     <div>
       <p className="px-5 pt-1 font-nunito font-bold text-[15px] text-text-primary">
         {t.booking.chooseService}
       </p>
-      {SERVICES.map((svc) => {
+      {services.map((svc) => {
         const active = selected?.id === svc.id
-        const svcT = t.services[svc.id as keyof typeof t.services]
         return (
           <button
             key={svc.id}
-            onClick={() => onSelect({ ...svc, name: svcT.name, duration: svcT.duration })}
+            onClick={() => onSelect(svc)}
             className={cn(
               'flex items-center gap-3 mx-5 mb-2.5 p-4 rounded-[16px] border w-[calc(100%-40px)] transition-colors',
               active ? 'border-brand bg-brand-muted' : 'border-border bg-white',
@@ -96,10 +117,10 @@ function ServiceStep({
               <i className={`ti ${svc.icon} text-[24px] text-brand-light`} aria-hidden="true" />
             </div>
             <div className="flex-1 text-left">
-              <p className="font-nunito font-bold text-[14px] text-text-primary">{svcT.name}</p>
-              <p className="text-[12px] text-text-muted mt-0.5">{svcT.duration}</p>
+              <p className="font-nunito font-bold text-[14px] text-text-primary">{svc.name}</p>
+              <p className="text-[12px] text-text-muted mt-0.5">{svc.duration} {t.services.minute}</p>
             </div>
-            <p className="font-nunito font-extrabold text-[16px] text-brand">{svc.price}</p>
+            <p className="font-nunito font-extrabold text-[16px] text-brand">${svc.price}</p>
             <i
               className={cn(
                 'ti text-[20px]',
@@ -421,9 +442,6 @@ function ConfirmStep({
       </div>
 
       <div className="px-5 mt-4">
-        <label className="block text-[12px] font-bold text-text-secondary uppercase mb-1.5">
-          {t.booking.everythingAutofilled}
-        </label>
         <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
           {t.booking.dogName}
         </label>
@@ -560,16 +578,10 @@ function ConfirmationPage({
         <div className="flex items-center justify-between pt-3 mt-3 border-t border-border">
           <span className="text-[14px] font-bold text-text-primary">{t.booking.total}</span>
           <span className="font-nunito font-extrabold text-[18px] text-brand">
-            {draft.service?.price ?? '—'}
+            ${draft.service?.price ?? '—'}
           </span>
         </div>
       </div>
-
-      <p className="text-[12px] text-text-muted mb-6">
-        {t.booking.confirmationEmailPre}
-        <span className="font-semibold">{draft.email}</span>
-        {t.booking.confirmationEmailPost}
-      </p>
 
       <div className="w-full space-y-3">
         <button
@@ -700,7 +712,7 @@ export default function BookPage() {
   const updateDraft = (fields: Partial<BookingDraft>) =>
     setDraft((prev) => ({ ...prev, ...fields }))
 
-  const serviceNeedsStyle = draft.service?.id === 'groom' || draft.service?.id === 'spa'
+const serviceNeedsStyle = draft.service?.needs_style ?? false
 
   const canContinue =
     (step === 1 && draft.service !== null) ||
@@ -708,15 +720,62 @@ export default function BookPage() {
     (step === 3 && draft.styleId !== null) ||
     (step === 4 && !!draft.dogName && !!draft.email && !!draft.phone)
 
-  function handleContinue() {
-    if (step === 2 && !serviceNeedsStyle) {
-      setStep(4)
-    } else if (step < 4) {
-      setStep((s) => (s + 1) as Step)
-    } else if (step === 4) {
+const [isSubmitting, setIsSubmitting] = useState(false)
+const [submitError, setSubmitError] = useState<string | null>(null)
+
+async function handleContinue() {
+  if (step === 2 && !serviceNeedsStyle) {
+    setStep(4)
+  } else if (step < 4) {
+    setStep((s) => (s + 1) as Step)
+  } else if (step === 4) {
+    setIsSubmitting(true)
+    setSubmitError(null)
+
+    const payload = {
+      service_id:     draft.service!.id,
+      service_name:   draft.service!.name,
+      service_price:  draft.service!.price,
+      duration_slots: draft.service!.slots,
+      date:           draft.date,
+      time:           draft.time,
+      style_id:       draft.styleId,
+      dog_name:       draft.dogName,
+      breed:          draft.breed,
+      email:          draft.email,
+      phone:          draft.phone,
+      notes:          draft.notes,
+    }
+
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const json = await res.json()
+
+      if (res.status === 409) {
+        // slot was taken between selecting and confirming
+        setSubmitError(json.error)
+        setStep(2)
+        return
+      }
+
+      if (!res.ok) {
+        setSubmitError(json.error ?? 'Something went wrong')
+        return
+      }
+
       setIsConfirmed(true)
+    } catch (err) {
+      setSubmitError('Network error, please try again')
+    } finally {
+      setIsSubmitting(false)
     }
   }
+}
 
   function handleBack() {
     if (step === 4 && !serviceNeedsStyle) {

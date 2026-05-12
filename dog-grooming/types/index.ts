@@ -6,8 +6,9 @@ export interface Service {
   name: string
   duration: string
   price: string
-  icon: string // Tabler icon class name
-  slots: number // Number of time slots this service occupies
+  icon: string
+  slots: number
+  needs_style: boolean
 }
 
 export interface Breed {
@@ -35,6 +36,23 @@ export interface BookingDraft {
   phone: string
   notes: string
   breed: string | null
+}
+
+export interface Booking {
+  id:            string
+  created_at:    string
+  service_id:    ServiceId
+  service_name:  string
+  service_price: string
+  duration_slots: number
+  date:          string
+  time:          string
+  style_id:      string | null
+  dog_name:      string
+  breed:         string | null
+  email:         string
+  phone:         string
+  notes:         string | null
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
