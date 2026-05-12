@@ -25,10 +25,6 @@ export const translations = {
       services: 'Services',
     },
     services: {
-        1:  { name: 'Bath & brush',  duration: '60 min'  },
-        2: { name: 'Full groom',    duration: '120 min' },
-        3:   { name: 'Spa package',   duration: '150 min' },
-        4:  { name: 'Nail trim',     duration: '20 min'  },
         minute: 'min',
     },
     common: {
@@ -127,10 +123,6 @@ export const translations = {
       services: '서비스',
     },
     services: {
-        1:  { name: '목욕 & 빗질',   duration: '60분'  },
-        2: { name: '풀 그루밍',     duration: '120분' },
-        3:   { name: '스파 패키지',   duration: '150분' },
-        4:  { name: '발톱 정리',     duration: '20분'  },
         minute: '분',
     },
     groomingStyles: {

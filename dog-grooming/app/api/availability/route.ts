@@ -20,38 +20,48 @@ const ALL_SLOTS = [
 ]
 
 export async function GET(req: Request) {
-    const { searchParams } = new URL(req.url)
-    const date = searchParams.get('date')
+  const { searchParams } = new URL(req.url)
+  const date = searchParams.get('date')
+  const serviceSlotsParam = searchParams.get('slots')
+  const incomingSlots = serviceSlotsParam ? parseInt(serviceSlotsParam) : 1
 
+  if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 })
 
-    if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 })
-
-    const supabase = getSupabase()
-    const { data, error } = await supabase
+  const supabase = getSupabase()
+  const { data, error } = await supabase
     .from('bookings')
     .select('time, services(slots)')
     .eq('date', date)
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    const blockedSlots = new Set<string>()
+  // Build set of all minutes that are occupied by existing bookings
+  const occupiedIndices = new Set<number>()
 
-    for (const booking of data ?? []) {
+  //checking every booking and marking slots as occupied
+  for (const booking of data ?? []) {
     const startIndex = ALL_SLOTS.indexOf(booking.time)
     if (startIndex === -1) continue
-
     const slots = (booking.services as any)?.slots ?? 1
 
     for (let i = 0; i < slots; i++) {
-        const slot = ALL_SLOTS[startIndex + i]
-        if (slot) blockedSlots.add(slot)
+      occupiedIndices.add(startIndex + i)
     }
+  }
+
+  // A slot is available only if ALL slots the incoming service needs are free
+  const slots = ALL_SLOTS.map((time, index) => {
+    let available = true
+
+    for (let i = 0; i < incomingSlots; i++) {
+      if (occupiedIndices.has(index + i)) {
+        available = false
+        break
+      }
     }
 
-    const slots = ALL_SLOTS.map((time) => ({
-    time,
-    available: !blockedSlots.has(time),
-    }))
+    return { time, available }
+  })
 
   return NextResponse.json({ slots })
 }

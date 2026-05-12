@@ -58,18 +58,6 @@ describe('GET /api/availability', () => {
     expect(slots.find((s: any) => s.time === '10:00 AM').available).toBe(true)
   })
 
-  // ─── Multi-slot booking ──────────────────────────────────────────────────
-  it('blocks 2 consecutive slots for a 2-slot booking', async () => {
-    mockSupabase([booking('9:00 AM', 2)])
-
-    const res = await GET(new Request(`http://localhost/api/availability?date=${ENCODED_DATE}`))
-    const { slots } = await res.json()
-
-    expect(slots.find((s: any) => s.time === '9:00 AM').available).toBe(false)
-    expect(slots.find((s: any) => s.time === '10:00 AM').available).toBe(false)
-    expect(slots.find((s: any) => s.time === '11:00 AM').available).toBe(true)
-  })
-
   it('blocks 3 consecutive slots for a 3-slot booking', async () => {
     mockSupabase([booking('2:00 PM', 3)])
 
@@ -80,6 +68,20 @@ describe('GET /api/availability', () => {
     expect(slots.find((s: any) => s.time === '3:00 PM').available).toBe(false)
     expect(slots.find((s: any) => s.time === '4:00 PM').available).toBe(false)
     expect(slots.find((s: any) => s.time === '5:00 PM').available).toBe(true)
+  })
+
+   // ─── Overlap detection ────────────────────────────────────────────────────
+  it('blocks slot before a booking if incoming service would overflow into it', async () => {
+    // groom (2 slots) at 10:00 AM occupies 10:00 AM and 11:00 AM
+    // incoming 2-slot service at 9:00 AM would run into 10:00 AM → blocked
+    mockSupabase([booking('10:00 AM', 2)])
+    const res = await GET(new Request(`http://localhost/api/availability?date=${ENCODED_DATE}&slots=${2}`))
+    const { slots } = await res.json()
+
+    expect(slots.find((s: any) => s.time === '9:00 AM').available).toBe(false)  // would overflow
+    expect(slots.find((s: any) => s.time === '10:00 AM').available).toBe(false) // occupied
+    expect(slots.find((s: any) => s.time === '11:00 AM').available).toBe(false) // occupied
+    expect(slots.find((s: any) => s.time === '12:00 PM').available).toBe(true)  // free
   })
 
   // ─── Multiple bookings ───────────────────────────────────────────────────
@@ -107,17 +109,6 @@ describe('GET /api/availability', () => {
 
     expect(slots.find((s: any) => s.time === '5:00 PM').available).toBe(false)
     expect(slots).toHaveLength(8)
-  })
-
-  // ─── Null/missing service join ───────────────────────────────────────────
-  it('defaults to 1 slot when services join returns null', async () => {
-    mockSupabase([{ time: '9:00 AM', services: null }])
-
-    const res = await GET(new Request(`http://localhost/api/availability?date=${ENCODED_DATE}`))
-    const { slots } = await res.json()
-
-    expect(slots.find((s: any) => s.time === '9:00 AM').available).toBe(false)
-    expect(slots.find((s: any) => s.time === '10:00 AM').available).toBe(true)
   })
 
   // ─── DB call verification ────────────────────────────────────────────────

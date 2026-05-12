@@ -3,11 +3,11 @@
 import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { GROOMING_STYLES } from '@/lib/data'
 import { useLanguage } from '@/components/LanguageContext'
 import { translations } from '@/lib/translations'
-import type { BookingDraft, Service } from '@/types'
+import type { BookingDraft, GroomingStyle, Service } from '@/types'
 import { useServices } from '@/lib/hooks/useServices'
+import { useStyles } from '@/lib/hooks/useStyles'
 
 type Step = 1 | 2 | 3 | 4
 
@@ -67,19 +67,19 @@ function StepIndicator({ current, total }: { current: Step; total: number }) {
 
 // ─── Step 1 — Service selection ──────────────────────────────────────────────
 function ServiceStep({
-  selected,
+  selectedServiceId,
   onSelect,
   language,
   t,
 }: {
-  selected: Service | null
+  selectedServiceId: number | null
   onSelect: (s: Service) => void
   language: string
   t: any
 }) {
   const { services, loading, error  } = useServices(language, t)
 
-   console.log('services:', services, 'loading:', loading, 'error:', error)
+  const selected = services.find((s) => s.id === selectedServiceId) ?? null
 
   if (loading) {
     return (
@@ -139,12 +139,14 @@ function ServiceStep({
 function DateTimeStep({
   selectedDate,
   selectedTime,
+  selectedService,
   onDateSelect,
   onTimeSelect,
   t,
 }: {
   selectedDate: string | null
   selectedTime: string | null
+  selectedService: Service | null
   onDateSelect: (d: string) => void
   onTimeSelect: (t: string) => void
   language: string
@@ -175,7 +177,10 @@ async function fetchSlots(date: string) {
 
   setLoadingSlots(true)
   try {
-    const res = await fetch(`/api/availability?date=${encodeURIComponent(date)}`)
+    const serviceSlots = selectedService?.slots ?? 1  // ← pass selected service slots
+    const res = await fetch(
+      `/api/availability?date=${encodeURIComponent(date)}&slots=${serviceSlots}`
+    )
     const json = await res.json()
     setSlots(json.slots ?? [])
     setSlotsCache((prev) => ({ ...prev, [date]: json.slots ?? [] }))
@@ -224,17 +229,21 @@ async function fetchSlots(date: string) {
           ))}
           {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => {
             const date = new Date(year, month, d)
-            const isPast = date < new Date()
+            const todayCheck = new Date()
+            todayCheck.setHours(0, 0, 0, 0)
+
+            const isPast = date < todayCheck
             const isToday = todayDate === d
-            const dateStr = `${monthNames[month]} ${d}, ${year}`
-            const active = selectedDate === dateStr
+            const isoDate = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
+
+          const active = selectedDate === isoDate
             return (
               <button
                 key={d}
                 disabled={isPast}
                 onClick={() => {
-                  onDateSelect(dateStr)
-                  fetchSlots(dateStr)
+                  onDateSelect(isoDate)
+                  fetchSlots(isoDate)
                 }}
                 className={cn(
                   'aspect-square flex items-center justify-center text-[13px] font-semibold font-nunito rounded-full transition-colors',
@@ -296,24 +305,52 @@ function StyleStep({
   photoUrl,
   onStyleSelect,
   onPhotoUpload,
+  language,
   t,
 }: {
-  selectedStyle: string | null
+  selectedStyle: GroomingStyle | null
   photoUrl: string | null
-  onStyleSelect: (id: string) => void
+  onStyleSelect: (style: GroomingStyle) => void
   onPhotoUpload: (url: string) => void
   language: string
   t: any
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { styles, loading, error } = useStyles(language, t)
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+
     if (file) {
       const reader = new FileReader()
-      reader.onload = (event) => onPhotoUpload(event.target?.result as string)
+
+      reader.onload = (event) => {
+        onPhotoUpload(event.target?.result as string)
+      }
+
       reader.readAsDataURL(file)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="px-5 pt-3.5 grid grid-cols-2 gap-2.5">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-[140px] rounded-[14px] bg-surface-secondary animate-pulse"
+          />
+        ))}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <p className="px-5 pt-3.5 text-[14px] text-red-500">
+        {error}
+      </p>
+    )
   }
 
   return (
@@ -321,26 +358,41 @@ function StyleStep({
       <p className="px-5 pt-3.5 pb-3 font-nunito font-bold text-[15px] text-text-primary">
         {t.booking.chooseStyle}
       </p>
+
       <div className="px-5 grid grid-cols-2 gap-2.5">
-        {GROOMING_STYLES.map((style) => {
-          const active = selectedStyle === style.id
-          const styleT = t.groomingStyles[style.id as keyof typeof t.groomingStyles]
+        {styles.map((style) => {
+          const active = selectedStyle?.id === style.id
+
           return (
             <button
               key={style.id}
-              onClick={() => onStyleSelect(style.id)}
+              onClick={() => onStyleSelect(style)}
               className={cn(
                 'flex flex-col items-center gap-2 p-3.5 rounded-[14px] border transition-colors',
-                active ? 'border-brand bg-brand-muted' : 'border-border bg-white',
+                active
+                  ? 'border-brand bg-brand-muted'
+                  : 'border-border bg-white',
               )}
             >
-              <span className="text-[32px]">{style.emoji}</span>
+              <span className="text-[32px]">
+                {style.emoji}
+              </span>
+
               <div className="text-center">
-                <p className="text-[13px] font-bold font-nunito text-text-primary">{styleT.name}</p>
-                <p className="text-[10px] text-text-muted mt-0.5">{styleT.desc}</p>
+                <p className="text-[13px] font-bold font-nunito text-text-primary">
+                  {style.name}
+                </p>
+
+                <p className="text-[10px] text-text-muted mt-0.5">
+                  {style.desc}
+                </p>
               </div>
+
               {active && (
-                <i className="ti ti-circle-check text-brand text-[16px] mt-1" aria-hidden="true" />
+                <i
+                  className="ti ti-circle-check text-brand text-[16px] mt-1"
+                  aria-hidden="true"
+                />
               )}
             </button>
           )
@@ -351,6 +403,7 @@ function StyleStep({
         <p className="font-nunito font-bold text-[15px] text-text-primary mb-3">
           {t.booking.addPhoto} ({t.booking.optional})
         </p>
+
         <input
           ref={fileInputRef}
           type="file"
@@ -358,16 +411,24 @@ function StyleStep({
           onChange={handleFileSelect}
           className="hidden"
         />
+
         {photoUrl ? (
           <div className="relative rounded-[14px] overflow-hidden bg-border">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photoUrl} alt="Dog" className="w-full h-auto" />
+            <img
+              src={photoUrl}
+              alt="Dog"
+              className="w-full h-auto"
+            />
+
             <button
               onClick={() => fileInputRef.current?.click()}
               className="absolute bottom-3 right-3 bg-brand text-white rounded-full p-2 flex items-center justify-center"
               aria-label="Change photo"
             >
-              <i className="ti ti-edit text-[16px]" aria-hidden="true" />
+              <i
+                className="ti ti-edit text-[16px]"
+                aria-hidden="true"
+              />
             </button>
           </div>
         ) : (
@@ -375,9 +436,18 @@ function StyleStep({
             onClick={() => fileInputRef.current?.click()}
             className="w-full border-2 border-dashed border-border rounded-[14px] py-8 flex flex-col items-center gap-2 hover:border-brand transition-colors"
           >
-            <i className="ti ti-photo-plus text-[32px] text-text-muted" aria-hidden="true" />
-            <span className="text-[13px] font-semibold text-text-secondary">{t.booking.addPhoto}</span>
-            <span className="text-[11px] text-text-muted">{t.booking.showGroomerWhatYouWant}</span>
+            <i
+              className="ti ti-photo-plus text-[32px] text-text-muted"
+              aria-hidden="true"
+            />
+
+            <span className="text-[13px] font-semibold text-text-secondary">
+              {t.booking.addPhoto}
+            </span>
+
+            <span className="text-[11px] text-text-muted">
+              {t.booking.showGroomerWhatYouWant}
+            </span>
           </button>
         )}
       </div>
@@ -388,21 +458,19 @@ function StyleStep({
 // ─── Step 4 — Confirm ────────────────────────────────────────────────────────
 function ConfirmStep({
   draft,
+  selectedStyle,
+  selectedService,
   onChange,
   serviceNeedsStyle,
   t,
 }: {
   draft: BookingDraft
+  selectedStyle: GroomingStyle | null
+  selectedService: Service | null
   onChange: (fields: Partial<BookingDraft>) => void
   serviceNeedsStyle: boolean
-  language: string
   t: any
 }) {
-  const selectedStyle = GROOMING_STYLES.find((s) => s.id === draft.styleId)
-  const selectedStyleT = selectedStyle
-    ? t.groomingStyles[selectedStyle.id as keyof typeof t.groomingStyles]
-    : null
-
   const [breedQuery, setBreedQuery] = useState(draft.breed ?? '')
 
   const filteredBreeds = DOG_BREEDS.filter((breed) =>
@@ -418,12 +486,10 @@ function ConfirmStep({
       </p>
       <div className="mx-5 mt-3 bg-white rounded-[20px] border border-border overflow-hidden">
         {[
-          { label: t.booking.service, value: draft.service?.name ?? '—' },
+          { label: t.booking.service, value: selectedService?.name ?? '—' },
           { label: t.booking.date, value: draft.date ?? '—' },
           { label: t.booking.time, value: draft.time ?? '—' },
-          ...(serviceNeedsStyle
-            ? [{ label: t.booking.style, value: selectedStyleT?.name ?? '—' }]
-            : []),
+          { label: t.booking.style, value: selectedStyle?.name ?? '—' },
         ].map(({ label, value }) => (
           <div
             key={label}
@@ -436,7 +502,7 @@ function ConfirmStep({
         <div className="flex items-center justify-between px-5 py-3">
           <span className="text-[15px] font-bold text-text-primary">{t.booking.total}</span>
           <span className="font-nunito font-extrabold text-[18px] text-brand">
-            {draft.service?.price ?? '—'}
+            {selectedService?.price ?? '—'}
           </span>
         </div>
       </div>
@@ -515,7 +581,7 @@ function ConfirmStep({
 
       <div className="px-5 mt-3 pb-2">
         <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
-          {t.booking.notesForGroomer} ({t.booking.optional})
+          {t.booking.notesForGroomer}
         </label>
         <textarea
           rows={3}
@@ -532,18 +598,17 @@ function ConfirmStep({
 // ─── Confirmation page ────────────────────────────────────────────────────────
 function ConfirmationPage({
   draft,
+  selectedStyle,
+  selectedService,
   onCreateAccount,
   t,
 }: {
   draft: BookingDraft
+  selectedService: Service | null
+  selectedStyle: GroomingStyle | null
   onCreateAccount: () => void
-  language: string
   t: any
 }) {
-  const selectedStyle = GROOMING_STYLES.find((s) => s.id === draft.styleId)
-  const selectedStyleT = selectedStyle
-    ? t.groomingStyles[selectedStyle.id as keyof typeof t.groomingStyles]
-    : null
 
   return (
     <div className="flex flex-col items-center justify-center px-5 py-8 text-center">
@@ -559,27 +624,32 @@ function ConfirmationPage({
 
       <div className="w-full bg-white rounded-[20px] border border-border p-5 mb-6">
         <div className="space-y-3">
-          {[
-            { label: t.booking.dog, value: draft.dogName || '—' },
-            { label: t.booking.service, value: draft.service?.name ?? '—' },
-            { label: t.booking.date, value: draft.date ?? '—' },
-            { label: t.booking.time, value: draft.time ?? '—' },
-            ...(selectedStyleT ? [{ label: t.booking.style, value: selectedStyleT.name }] : []),
-          ].map(({ label, value }) => (
-            <div
-              key={label}
-              className="flex items-center justify-between pb-3 border-b border-border last:border-none last:pb-0"
-            >
-              <span className="text-[13px] font-semibold text-text-muted">{label}</span>
-              <span className="text-[13px] font-bold text-text-primary">{value}</span>
+          <div className="flex justify-between pb-3 border-b border-border">
+            <span className="text-[13px] font-semibold text-text-muted">{t.booking.dog}</span>
+            <span className="text-[13px] font-bold text-text-primary">{draft.dogName || '—'}</span>
+          </div>
+
+          <div className="flex justify-between pb-3 border-b border-border">
+            <span className="text-[13px] font-semibold text-text-muted">{t.booking.service}</span>
+            <span className="text-[13px] font-bold text-text-primary">{selectedService?.name ?? '—'}</span>
+          </div>
+
+          <div className="flex justify-between pb-3 border-b border-border">
+            <span className="text-[13px] font-semibold text-text-muted">{t.booking.date}</span>
+            <span className="text-[13px] font-bold text-text-primary">{draft.date ?? '—'}</span>
+          </div>
+
+          <div className="flex justify-between pb-3 border-b border-border">
+            <span className="text-[13px] font-semibold text-text-muted">{t.booking.time}</span>
+            <span className="text-[13px] font-bold text-text-primary">{draft.time ?? '—'}</span>
+          </div>
+
+          {selectedService?.needs_style && (
+            <div className="flex justify-between pb-3 border-b border-border">
+              <span className="text-[13px] font-semibold text-text-muted">{t.booking.style}</span>
+              <span className="text-[13px] font-bold text-text-primary">{selectedStyle?.name ?? '—'}</span>
             </div>
-          ))}
-        </div>
-        <div className="flex items-center justify-between pt-3 mt-3 border-t border-border">
-          <span className="text-[14px] font-bold text-text-primary">{t.booking.total}</span>
-          <span className="font-nunito font-extrabold text-[18px] text-brand">
-            ${draft.service?.price ?? '—'}
-          </span>
+          )}
         </div>
       </div>
 
@@ -693,11 +763,13 @@ function AccountCreationPage({
 export default function BookPage() {
   const { language } = useLanguage()
   const t = translations[language]
+  const { styles } = useStyles(language, t)
+  const { services } = useServices(language, t)
   const [step, setStep] = useState<Step>(1)
   const [isConfirmed, setIsConfirmed] = useState(false)
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
   const [draft, setDraft] = useState<BookingDraft>({
-    service: null,
+    serviceId: null,
     date: null,
     time: null,
     styleId: null,
@@ -712,13 +784,23 @@ export default function BookPage() {
   const updateDraft = (fields: Partial<BookingDraft>) =>
     setDraft((prev) => ({ ...prev, ...fields }))
 
-const serviceNeedsStyle = draft.service?.needs_style ?? false
+  function handleServiceSelect(service: Service) {
+    updateDraft({ serviceId: service.id, date: null, time: null })
+  }
+
+  const selectedStyle = styles.find((s) => s.id === draft.styleId) ?? null
+
+  const selectedService = services.find((s) => s.id === draft.serviceId) ?? null
+  const serviceNeedsStyle = selectedService?.needs_style ?? false
 
   const canContinue =
-    (step === 1 && draft.service !== null) ||
-    (step === 2 && draft.date !== null && draft.time !== null) ||
-    (step === 3 && draft.styleId !== null) ||
-    (step === 4 && !!draft.dogName && !!draft.email && !!draft.phone)
+  (step === 1 && draft.serviceId !== null) ||
+  (step === 2 && draft.date !== null && draft.time !== null) ||
+  (step === 3 && draft.styleId !== null) ||
+  (step === 4 &&
+    !!draft.dogName &&
+    !!draft.email &&
+    !!draft.phone)
 
 const [isSubmitting, setIsSubmitting] = useState(false)
 const [submitError, setSubmitError] = useState<string | null>(null)
@@ -733,10 +815,9 @@ async function handleContinue() {
     setSubmitError(null)
 
     const payload = {
-      service_id:     draft.service!.id,
-      service_name:   draft.service!.name,
-      service_price:  draft.service!.price,
-      duration_slots: draft.service!.slots,
+      service_id:     draft.serviceId,
+      service_price:  selectedService?.price,
+      duration_slots: selectedService?.slots,
       date:           draft.date,
       time:           draft.time,
       style_id:       draft.styleId,
@@ -820,8 +901,9 @@ async function handleContinue() {
         <div className="flex-1 overflow-y-auto no-scrollbar">
           <ConfirmationPage
             draft={draft}
+            selectedStyle={selectedStyle}
+            selectedService={selectedService}
             onCreateAccount={() => setIsCreatingAccount(true)}
-            language={language}
             t={t}
           />
         </div>
@@ -854,8 +936,8 @@ async function handleContinue() {
       <div className="flex-1 overflow-y-auto no-scrollbar pb-2">
         {step === 1 && (
           <ServiceStep
-            selected={draft.service}
-            onSelect={(s) => updateDraft({ service: s })}
+            selectedServiceId={draft.serviceId}
+            onSelect={(s) => handleServiceSelect(s)}
             language={language}
             t={t}
           />
@@ -864,6 +946,7 @@ async function handleContinue() {
           <DateTimeStep
             selectedDate={draft.date}
             selectedTime={draft.time}
+            selectedService={selectedService} 
             onDateSelect={(d) => updateDraft({ date: d, time: null })}
             onTimeSelect={(t) => updateDraft({ time: t })}
             language={language}
@@ -872,9 +955,9 @@ async function handleContinue() {
         )}
         {step === 3 && (
           <StyleStep
-            selectedStyle={draft.styleId}
+            selectedStyle={selectedStyle}
             photoUrl={draft.photoUrl}
-            onStyleSelect={(id) => updateDraft({ styleId: id })}
+            onStyleSelect={(style) => updateDraft({ styleId: style.id })}
             onPhotoUpload={(url) => updateDraft({ photoUrl: url })}
             language={language}
             t={t}
@@ -883,9 +966,10 @@ async function handleContinue() {
         {step === 4 && (
           <ConfirmStep
             draft={draft}
+            selectedStyle={selectedStyle}
+            selectedService={selectedService}
             onChange={updateDraft}
             serviceNeedsStyle={serviceNeedsStyle}
-            language={language}
             t={t}
           />
         )}

@@ -1,14 +1,13 @@
-// ─── Service ────────────────────────────────────────────────────────────────
-export type ServiceId = 'bath' | 'groom' | 'spa' | 'nail'
+// ─── TYPES ───────────────────────────────────────────────────────────────────
 
 export interface Service {
-  id: ServiceId
+  id: number
   name: string
   duration: string
-  price: string
+  price: number
   icon: string
   slots: number
-  needs_style: boolean
+ needs_style: boolean
 }
 
 export interface Breed {
@@ -16,20 +15,18 @@ export interface Breed {
   name: string
 }
 
-// ─── Grooming Styles ────────────────────────────────────────────────────────
 export interface GroomingStyle {
-  id: string
+  id: number
   name: string
   desc: string
   emoji: string
 }
 
-// ─── Booking ─────────────────────────────────────────────────────────────────
 export interface BookingDraft {
-  service: Service | null
+  serviceId: number | null
   date: string | null
   time: string | null
-  styleId: string | null
+  styleId: number | null
   photoUrl: string | null
   dogName: string
   email: string
@@ -39,23 +36,22 @@ export interface BookingDraft {
 }
 
 export interface Booking {
-  id:            string
-  created_at:    string
-  service_id:    ServiceId
-  service_name:  string
-  service_price: string
+  id: string
+  created_at: string
+  service_id: number
+  service_name: string
+  service_price: number
   duration_slots: number
-  date:          string
-  time:          string
-  style_id:      string | null
-  dog_name:      string
-  breed:         string | null
-  email:         string
-  phone:         string
-  notes:         string | null
+  date: string
+  time: string
+  style_id: number | null
+  dog_name: string
+  breed: string | null
+  email: string
+  phone: string
+  notes: string | null
 }
 
-// ─── Auth ────────────────────────────────────────────────────────────────────
 export interface User {
   id: string
   name: string
