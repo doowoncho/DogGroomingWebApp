@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { SERVICES } from '@/lib/data'
 import { useLanguage } from '@/components/LanguageContext'
 import { translations } from '@/lib/translations'
 

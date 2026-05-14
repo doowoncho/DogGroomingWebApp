@@ -401,7 +401,7 @@ function StyleStep({
 
       <div className="px-5 mt-5">
         <p className="font-nunito font-bold text-[15px] text-text-primary mb-3">
-          {t.booking.addPhoto} ({t.booking.optional})
+          {t.booking.addPhoto}
         </p>
 
         <input
@@ -489,7 +489,9 @@ function ConfirmStep({
           { label: t.booking.service, value: selectedService?.name ?? '—' },
           { label: t.booking.date, value: draft.date ?? '—' },
           { label: t.booking.time, value: draft.time ?? '—' },
-          { label: t.booking.style, value: selectedStyle?.name ?? '—' },
+           ...(serviceNeedsStyle
+        ? [{ label: t.booking.style, value: selectedStyle?.name ?? '—' }]
+        : []),
         ].map(({ label, value }) => (
           <div
             key={label}
