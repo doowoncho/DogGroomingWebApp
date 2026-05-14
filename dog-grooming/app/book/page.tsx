@@ -302,34 +302,45 @@ async function fetchSlots(date: string) {
 // ─── Step 3 — Style & Photo ───────────────────────────────────────────────────
 function StyleStep({
   selectedStyle,
-  photoUrl,
+  photoUrls,
   onStyleSelect,
   onPhotoUpload,
+  onFilesSelect,
   language,
   t,
 }: {
   selectedStyle: GroomingStyle | null
-  photoUrl: string | null
+  photoUrls: string[]
   onStyleSelect: (style: GroomingStyle) => void
-  onPhotoUpload: (url: string) => void
+  onPhotoUpload: (urls: string[]) => void
+  onFilesSelect: (files: File[]) => void
   language: string
   t: any
-}) {
+}){
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { styles, loading, error } = useStyles(language, t)
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+ const handleFileSelect = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = Array.from(e.target.files ?? [])
 
-    if (file) {
-      const reader = new FileReader()
+    if (!files.length) return
 
-      reader.onload = (event) => {
-        onPhotoUpload(event.target?.result as string)
-      }
+    // create preview urls
+    const previews = files.map((file) =>
+      URL.createObjectURL(file)
+    )
 
-      reader.readAsDataURL(file)
-    }
+    // append previews instead of replacing
+    onPhotoUpload([...photoUrls, ...previews])
+
+    // append actual files
+    onFilesSelect(files)
+
+    // IMPORTANT:
+    // reset input so selecting same image again still works
+    e.target.value = ''
   }
 
   if (loading) {
@@ -399,58 +410,72 @@ function StyleStep({
         })}
       </div>
 
-      <div className="px-5 mt-5">
-        <p className="font-nunito font-bold text-[15px] text-text-primary mb-3">
-          {t.booking.addPhoto}
-        </p>
+    <div className="px-5 mt-5">
+      <p className="font-nunito font-bold text-[15px] text-text-primary mb-3">
+        {t.booking.addPhoto}
+      </p>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-
-        {photoUrl ? (
-          <div className="relative rounded-[14px] overflow-hidden bg-border">
-            <img
-              src={photoUrl}
-              alt="Dog"
-              className="w-full h-auto"
-            />
-
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-3 right-3 bg-brand text-white rounded-full p-2 flex items-center justify-center"
-              aria-label="Change photo"
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+        {photoUrls.length > 0 ? (
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {photoUrls.map((url, index) => (
+            <div
+              key={index}
+              className="relative rounded-[14px] overflow-hidden bg-border"
             >
-              <i
-                className="ti ti-edit text-[16px]"
-                aria-hidden="true"
+              <img
+                src={url}
+                alt={`Dog ${index + 1}`}
+                className="w-full h-32 object-cover"
               />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full border-2 border-dashed border-border rounded-[14px] py-8 flex flex-col items-center gap-2 hover:border-brand transition-colors"
-          >
-            <i
-              className="ti ti-photo-plus text-[32px] text-text-muted"
-              aria-hidden="true"
-            />
 
-            <span className="text-[13px] font-semibold text-text-secondary">
-              {t.booking.addPhoto}
-            </span>
+              <button
+               onClick={() =>
+                  onPhotoUpload(
+                    photoUrls.filter((_, i) => i !== index)
+                  )
+                }
+                className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1"
+              >
+                <i className="ti ti-x text-[14px]" />
+              </button>
+            </div>
+          ))}
+        </div>
 
-            <span className="text-[11px] text-text-muted">
-              {t.booking.showGroomerWhatYouWant}
-            </span>
-          </button>
-        )}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="w-full border-2 border-dashed border-border rounded-[14px] py-4 flex items-center justify-center gap-2 hover:border-brand transition-colors"
+        >
+          <i className="ti ti-photo-plus text-[20px] text-text-muted" />
+          <span className="text-[13px] font-semibold text-text-secondary">
+            Add more photos
+          </span>
+        </button>
       </div>
+    ) : (
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        className="w-full border-2 border-dashed border-border rounded-[14px] py-8 flex flex-col items-center gap-2 hover:border-brand transition-colors"
+      >
+        <i className="ti ti-photo-plus text-[32px] text-text-muted" />
+        <span className="text-[13px] font-semibold text-text-secondary">
+          {t.booking.addPhoto}
+        </span>
+        <span className="text-[11px] text-text-muted">
+          {t.booking.showGroomerWhatYouWant}
+        </span>
+      </button>
+    )}
+  </div>
     </div>
   )
 }
@@ -770,12 +795,13 @@ export default function BookPage() {
   const [step, setStep] = useState<Step>(1)
   const [isConfirmed, setIsConfirmed] = useState(false)
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
+  const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [draft, setDraft] = useState<BookingDraft>({
     serviceId: null,
     date: null,
     time: null,
     styleId: null,
-    photoUrl: null,
+    photoUrls: [],
     dogName: '',
     email: '',
     phone: '',
@@ -851,13 +877,29 @@ async function handleContinue() {
         return
       }
 
-      setIsConfirmed(true)
-    } catch (err) {
-      setSubmitError('Network error, please try again')
-    } finally {
-      setIsSubmitting(false)
+      // upload photos AFTER booking succeeds
+      if (photoFiles.length > 0) {
+        const formData = new FormData()
+
+        formData.append('bookingId', json.booking.id)
+
+        photoFiles.forEach((file) => {
+          formData.append('files', file)
+        })
+
+        await fetch('/api/photos', {
+          method: 'POST',
+          body: formData,
+        })
+      }
+
+    setIsConfirmed(true)
+      } catch (err) {
+        setSubmitError('Network error, please try again')
+      } finally {
+        setIsSubmitting(false)
+      }
     }
-  }
 }
 
   function handleBack() {
@@ -958,9 +1000,10 @@ async function handleContinue() {
         {step === 3 && (
           <StyleStep
             selectedStyle={selectedStyle}
-            photoUrl={draft.photoUrl}
+            photoUrls={draft.photoUrls}
             onStyleSelect={(style) => updateDraft({ styleId: style.id })}
-            onPhotoUpload={(url) => updateDraft({ photoUrl: url })}
+            onPhotoUpload={(urls) => updateDraft({ photoUrls: urls })}
+            onFilesSelect={(files) => setPhotoFiles((prev) => [...prev, ...files])}
             language={language}
             t={t}
           />

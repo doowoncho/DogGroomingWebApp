@@ -27,7 +27,7 @@ export interface BookingDraft {
   date: string | null
   time: string | null
   styleId: number | null
-  photoUrl: string | null
+  photoUrls: string[]
   dogName: string
   email: string
   phone: string

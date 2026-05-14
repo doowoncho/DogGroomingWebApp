@@ -27,6 +27,22 @@ export async function GET(req: Request) {
 
   if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 })
 
+  const requestedDate = new Date(date)
+  const today = new Date()
+
+  requestedDate.setHours(0, 0, 0, 0)
+  today.setHours(0, 0, 0, 0)
+
+  const isSameDay = requestedDate.getTime() === today.getTime()
+
+  if (isSameDay) {
+  return NextResponse.json({
+    slots: ALL_SLOTS.map((time) => ({
+      time,
+      available: false,
+    })),
+  })
+  }
   const supabase = getSupabase()
   const { data, error } = await supabase
     .from('bookings')
