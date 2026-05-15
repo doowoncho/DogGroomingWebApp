@@ -2,6 +2,9 @@
 
 import Link from 'next/link'
 import { useLanguage } from '@/components/LanguageContext'
+import { useEffect, useState } from 'react'
+import type { User } from '@supabase/supabase-js'
+import { supabase } from '@/utils/supabase/client'
 
 interface TopBarProps {
   showBack?: boolean
@@ -11,6 +14,24 @@ interface TopBarProps {
 
 export default function TopBar({ showBack, backHref = '/', title }: TopBarProps) {
   const { language, setLanguage } = useLanguage()
+  const [user, setUser] = useState<User | null>(null)
+
+  useEffect(() => {
+
+  supabase.auth.getUser().then(({ data }) => {
+    setUser(data.user)
+  })
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    setUser(session?.user ?? null)
+  })
+
+  return () => {
+    subscription.unsubscribe()
+  }
+}, [])
 
   return (
     <header className="flex items-center justify-between px-5 pt-4 pb-5 md:px-8">
@@ -51,9 +72,21 @@ export default function TopBar({ showBack, backHref = '/', title }: TopBarProps)
         <Link href="/book" className="text-[13px] font-semibold text-text-secondary transition hover:text-text-primary">
           {language === 'en' ? 'Book' : '예약'}
         </Link>
-        <Link href="/account" className="text-[13px] font-semibold text-text-secondary transition hover:text-text-primary">
-          {language === 'en' ? 'Account' : '계정'}
-        </Link>
+       {user ? (
+          <Link
+            href="/account"
+            className="text-[13px] font-semibold text-text-secondary transition hover:text-text-primary"
+          >
+            {language === 'en' ? 'Account' : '계정'}
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            className="text-[13px] font-semibold text-text-secondary transition hover:text-text-primary"
+          >
+            {language === 'en' ? 'Login' : '로그인'}
+          </Link>
+        )}
         <div className="flex items-center gap-2 pl-4 border-l border-border">
           <button
             onClick={() => setLanguage('en')}
@@ -85,13 +118,21 @@ export default function TopBar({ showBack, backHref = '/', title }: TopBarProps)
         >
           {language === 'en' ? 'EN' : '한'}
         </button>
-        <Link
-          href="/account"
-          className="w-9 h-9 rounded-full bg-brand-light flex items-center justify-center font-nunito font-bold text-sm text-white"
-          aria-label="Account"
-        >
-          A
-        </Link>
+        {user ? (
+          <Link
+            href="/account"
+            className="w-9 h-9 rounded-full bg-brand-light flex items-center justify-center font-nunito font-bold text-sm text-white"
+          >
+            A
+          </Link>
+        ) : (
+          <Link
+            href="/login"
+            className="w-9 h-9 rounded-full bg-surface-secondary flex items-center justify-center font-nunito font-bold text-sm text-text-secondary"
+          >
+            <i className="ti ti-login text-[16px]" />
+          </Link>
+        )}
       </div>
     </header>
   )

@@ -529,7 +529,7 @@ function ConfirmStep({
         <div className="flex items-center justify-between px-5 py-3">
           <span className="text-[15px] font-bold text-text-primary">{t.booking.total}</span>
           <span className="font-nunito font-extrabold text-[18px] text-brand">
-            {selectedService?.price ?? '—'}
+            ${selectedService?.price ?? '—'}
           </span>
         </div>
       </div>
@@ -670,6 +670,12 @@ function ConfirmationPage({
             <span className="text-[13px] font-semibold text-text-muted">{t.booking.time}</span>
             <span className="text-[13px] font-bold text-text-primary">{draft.time ?? '—'}</span>
           </div>
+
+           <div className="flex justify-between pb-3 border-b border-border">
+            <span className="text-[13px] font-semibold text-text-muted">{t.booking.phone}</span>
+            <span className="text-[13px] font-bold text-text-primary">{draft.phone ?? '—'}</span>
+          </div>
+
 
           {selectedService?.needs_style && (
             <div className="flex justify-between pb-3 border-b border-border">

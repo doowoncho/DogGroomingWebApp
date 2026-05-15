@@ -2,9 +2,74 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { supabase } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const [isSignup, setIsSignup] = useState(false)
+  const router = useRouter()
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+async function handleLogin() {
+  setLoading(true)
+  setError(null)
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+  console.log(data)
+console.log(error)
+
+  setLoading(false)
+
+  if (error) {
+    setError(error.message)
+    return
+  }
+
+  router.push('/account')
+}
+
+async function handleSignup() {
+  setLoading(true)
+  setError(null)
+
+  if (password !== confirmPassword) {
+    setError("Passwords don't match")
+    setLoading(false)
+    return
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: fullName,
+      },
+    },
+  })
+
+  console.log('SIGNUP DATA:', data)
+  console.log('SIGNUP ERROR:', error)
+
+  setLoading(false)
+
+  if (error) {
+    setError(error.message)
+    return
+  }
+
+  router.push('/account')
+}
 
   return (
     <div>
@@ -36,19 +101,19 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="px-5 pt-5">
-          {/* Google */}
-          <button className="w-full bg-white border border-border rounded-full py-3.5 text-[14px] font-bold font-nunito text-text-primary flex items-center justify-center gap-2">
-            <i className="ti ti-brand-google text-[18px] text-[#ea4335]" aria-hidden="true" />
-            Continue with Google
-          </button>
+        {error && (
+          <div className="mx-5 mb-4 rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {error}
+          </div>
+        )}
 
+        <div className="px-5 pt-5">
           {/* Divider */}
-          <div className="flex items-center gap-2.5 py-4">
+          {/* <div className="flex items-center gap-2.5 py-4">
             <div className="flex-1 h-px bg-border" />
             <span className="text-[12px] font-semibold text-text-muted">or</span>
             <div className="flex-1 h-px bg-border" />
-          </div>
+          </div> */}
 
           {/* Name (signup only) */}
           {isSignup && (
@@ -56,11 +121,15 @@ export default function LoginPage() {
               <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
                 Full name
               </label>
-              <input
-                type="text"
-                placeholder="Alex Johnson"
-                className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans bg-white text-text-primary outline-none focus:border-brand"
-              />
+              {isSignup && (
+                <input
+                  type="text"
+                  placeholder="Alex Johnson"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans bg-white text-text-primary outline-none focus:border-brand"
+                />
+              )}
             </div>
           )}
 
@@ -69,9 +138,11 @@ export default function LoginPage() {
             <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
               Email
             </label>
-            <input
+          <input
               type="email"
               placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans bg-white text-text-primary outline-none focus:border-brand"
             />
           </div>
@@ -84,22 +155,21 @@ export default function LoginPage() {
             <input
               type="password"
               placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans bg-white text-text-primary outline-none focus:border-brand"
             />
           </div>
 
           {/* Confirm password (signup only) */}
           {isSignup && (
-            <div className="mb-3">
-              <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
-                Confirm password
-              </label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans bg-white text-text-primary outline-none focus:border-brand"
-              />
-            </div>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans bg-white text-text-primary outline-none focus:border-brand"
+            />
           )}
 
           {/* Switch */}
@@ -117,12 +187,17 @@ export default function LoginPage() {
 
       {/* CTA */}
       <div className="px-5 py-3.5 bg-surface">
-        <Link
-          href="/"
-          className="w-full bg-brand text-white font-nunito font-bold text-base rounded-full py-4 text-center block"
-        >
-          {isSignup ? 'Create account' : 'Sign in'}
-        </Link>
+      <button
+        onClick={isSignup ? handleSignup : handleLogin}
+        disabled={loading}
+        className="w-full bg-brand text-white font-nunito font-bold text-base rounded-full py-4 text-center disabled:opacity-50"
+      >
+        {loading
+          ? 'Loading...'
+          : isSignup
+            ? 'Create account'
+            : 'Sign in'}
+      </button>
       </div>
     </div>
   )
