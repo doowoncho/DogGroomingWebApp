@@ -33,6 +33,7 @@ export interface BookingDraft {
   phone: string
   notes: string
   breed: string | null
+  bookingId?: string | null
 }
 
 export interface Booking {

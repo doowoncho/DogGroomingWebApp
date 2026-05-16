@@ -27,13 +27,8 @@ export async function GET(req: Request) {
 
   if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 })
 
-  const requestedDate = new Date(date)
-  const today = new Date()
-
-  requestedDate.setHours(0, 0, 0, 0)
-  today.setHours(0, 0, 0, 0)
-
-  const isSameDay = requestedDate.getTime() === today.getTime()
+  const todayString = new Date().toISOString().split('T')[0]
+  const isSameDay = date === todayString
 
   if (isSameDay) {
   return NextResponse.json({

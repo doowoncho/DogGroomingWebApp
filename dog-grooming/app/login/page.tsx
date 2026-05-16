@@ -25,9 +25,7 @@ async function handleLogin() {
     email,
     password,
   })
-  console.log(data)
-console.log(error)
-
+  
   setLoading(false)
 
   if (error) {
@@ -35,7 +33,7 @@ console.log(error)
     return
   }
 
-  router.push('/account')
+  router.push('/')
 }
 
 async function handleSignup() {

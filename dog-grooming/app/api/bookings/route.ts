@@ -69,7 +69,10 @@ export async function POST(req: Request) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ booking: data as Booking }, { status: 201 })
+  return Response.json({
+  success: true,
+  booking: data, // MUST include id
+})
 }
 
 export async function GET(request: Request) {

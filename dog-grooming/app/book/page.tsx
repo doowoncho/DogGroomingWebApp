@@ -8,6 +8,8 @@ import { translations } from '@/lib/translations'
 import type { BookingDraft, GroomingStyle, Service } from '@/types'
 import { useServices } from '@/lib/hooks/useServices'
 import { useStyles } from '@/lib/hooks/useStyles'
+import { useEffect } from 'react'
+import { supabase } from '@/utils/supabase/client'
 
 type Step = 1 | 2 | 3 | 4
 
@@ -306,6 +308,7 @@ function StyleStep({
   onStyleSelect,
   onPhotoUpload,
   onFilesSelect,
+  onRemovePhoto,
   language,
   t,
 }: {
@@ -314,6 +317,7 @@ function StyleStep({
   onStyleSelect: (style: GroomingStyle) => void
   onPhotoUpload: (urls: string[]) => void
   onFilesSelect: (files: File[]) => void
+  onRemovePhoto: (index: number) => void
   language: string
   t: any
 }){
@@ -438,11 +442,7 @@ function StyleStep({
               />
 
               <button
-               onClick={() =>
-                  onPhotoUpload(
-                    photoUrls.filter((_, i) => i !== index)
-                  )
-                }
+               onClick={() => onRemovePhoto(index)}
                 className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1"
               >
                 <i className="ti ti-x text-[14px]" />
@@ -637,6 +637,13 @@ function ConfirmationPage({
   t: any
 }) {
 
+  const [session, setSession] = useState<any>(null)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+    })
+  }, [])
+
   return (
     <div className="flex flex-col items-center justify-center px-5 py-8 text-center">
       <div className="w-16 h-16 bg-brand-pale rounded-full flex items-center justify-center mb-4">
@@ -685,7 +692,8 @@ function ConfirmationPage({
           )}
         </div>
       </div>
-
+      
+      {!session?.user && (
       <div className="w-full space-y-3">
         <button
           onClick={onCreateAccount}
@@ -700,6 +708,7 @@ function ConfirmationPage({
           {t.booking.continueAsGuest}
         </Link>
       </div>
+        )}
     </div>
   )
 }
@@ -712,18 +721,73 @@ function AccountCreationPage({
   draft: BookingDraft
   onComplete: () => void
 }) {
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const { language } = useLanguage()
-  const t = translations[language]
+const [password, setPassword] = useState('')
+const [confirmPassword, setConfirmPassword] = useState('')
+const { language } = useLanguage()
+const t = translations[language]
 
   const canCreate =
     draft.email && password && password === confirmPassword && password.length >= 6
 
-  const handleCreateAccount = async () => {
-    if (!canCreate) return
-    onComplete()
+const [loading, setLoading] = useState(false)
+const [error, setError] = useState<string | null>(null)
+const [stage, setStage] = useState<'form' | 'waiting' | 'done'>('form')
+
+const handleCreateAccount = async () => {
+  setLoading(true)
+  setError(null)
+
+  try {
+    const res = await fetch('/api/account', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: draft.email,
+        password,
+        phone: draft.phone,
+        dogName: draft.dogName,
+        breed: draft.breed,
+        bookingId: draft.bookingId,
+      }),
+    })
+
+    if (!res.ok) {
+      const json = await res.json()
+      setError(json.error ?? 'Something went wrong')
+      return
+    }
+
+    // 👇 move to waiting screen
+    setStage('waiting')
+
+  } catch (err) {
+    setError('Network error, please try again')
+  } finally {
+    setLoading(false)
   }
+}
+
+if (stage === 'waiting') {
+  return (
+    <div className="flex flex-col items-center justify-center text-center px-5 py-10">
+      <i className="ti ti-mail text-[48px] text-brand mb-4" />
+
+      <h2 className="text-xl font-extrabold text-text-primary mb-2">
+        Check your email
+      </h2>
+
+      <p className="text-sm text-text-secondary mb-6">
+        We sent you a confirmation link. Once you confirm, you can continue.
+      </p>
+
+      <button
+        onClick={() => window.location.href = '/'}
+        className="w-full bg-brand text-white font-bold py-4 rounded-full"
+      >
+        Go to home
+      </button>
+    </div>
+  )
+}
 
   return (
     <div className="flex flex-col px-5 py-8">
@@ -773,9 +837,15 @@ function AccountCreationPage({
           <p className="text-[11px] text-red-500 mt-1">{t.booking.passwordsDontMatch}</p>
         )}
       </div>
+  
+        {error && (
+            <p className="text-red-500 text-sm mt-2">
+              {error}
+            </p>
+          )}
 
       <button
-        disabled={!canCreate}
+        disabled={!canCreate || loading}
         onClick={handleCreateAccount}
         className="w-full bg-brand text-white font-nunito font-bold text-base rounded-full py-4 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity active:opacity-80 mb-3"
       >
@@ -813,14 +883,46 @@ export default function BookPage() {
     phone: '',
     notes: '',
     breed: null,
+    bookingId: null,
   })
+useEffect(() => {
+  async function loadUserData() {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-  const updateDraft = (fields: Partial<BookingDraft>) =>
-    setDraft((prev) => ({ ...prev, ...fields }))
+    const user = session?.user
 
-  function handleServiceSelect(service: Service) {
-    updateDraft({ serviceId: service.id, date: null, time: null })
+    if (!user) return
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+
+    setDraft((prev) => ({
+      ...prev,
+      email: prev.email || user.email || '',
+      phone: prev.phone || profile?.phone || '',
+    }))
   }
+
+  loadUserData()
+}, [])
+
+
+
+function handlePhotoFiles(files: File[]) {
+  setPhotoFiles((prev) => [...prev, ...files])
+}
+
+const updateDraft = (fields: Partial<BookingDraft>) =>
+  setDraft((prev) => ({ ...prev, ...fields }))
+
+function handleServiceSelect(service: Service) {
+  updateDraft({ serviceId: service.id, date: null, time: null })
+}
 
   const selectedStyle = styles.find((s) => s.id === draft.styleId) ?? null
 
@@ -838,6 +940,15 @@ export default function BookPage() {
 
 const [isSubmitting, setIsSubmitting] = useState(false)
 const [submitError, setSubmitError] = useState<string | null>(null)
+
+function removePhoto(index: number) {
+  setDraft((prev) => ({
+    ...prev,
+    photoUrls: prev.photoUrls.filter((_, i) => i !== index),
+  }))
+
+  setPhotoFiles((prev) => prev.filter((_, i) => i !== index))
+}
 
 async function handleContinue() {
   if (step === 2 && !serviceNeedsStyle) {
@@ -860,6 +971,7 @@ async function handleContinue() {
       email:          draft.email,
       phone:          draft.phone,
       notes:          draft.notes,
+      bookingId:        draft.bookingId,
     }
 
     try {
@@ -870,6 +982,10 @@ async function handleContinue() {
       })
 
       const json = await res.json()
+      setDraft((prev) => ({
+        ...prev,
+        bookingId: json.booking.id,
+      }))
 
       if (res.status === 409) {
         // slot was taken between selecting and confirming
@@ -908,6 +1024,15 @@ async function handleContinue() {
     }
 }
 
+useEffect(() => {
+  return () => {
+    draft.photoUrls.forEach((url) => {
+      URL.revokeObjectURL(url)
+    })
+  }
+}, [])
+
+
   function handleBack() {
     if (step === 4 && !serviceNeedsStyle) {
       setStep(2)
@@ -932,14 +1057,16 @@ async function handleContinue() {
           </span>
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar">
-          <AccountCreationPage
+
+            <AccountCreationPage
             draft={draft}
             onComplete={() => {
               setTimeout(() => {
                 window.location.href = '/'
               }, 500)
             }}
-          />
+            />
+
         </div>
       </div>
     )
@@ -1009,7 +1136,8 @@ async function handleContinue() {
             photoUrls={draft.photoUrls}
             onStyleSelect={(style) => updateDraft({ styleId: style.id })}
             onPhotoUpload={(urls) => updateDraft({ photoUrls: urls })}
-            onFilesSelect={(files) => setPhotoFiles((prev) => [...prev, ...files])}
+            onFilesSelect={handlePhotoFiles}
+            onRemovePhoto={removePhoto}
             language={language}
             t={t}
           />
