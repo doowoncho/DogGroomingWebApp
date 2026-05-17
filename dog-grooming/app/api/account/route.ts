@@ -7,13 +7,14 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
   const body = await req.json()
-  const { email, password, phone, dogName, breed, bookingId } = body
+  const { email, password, phone, dogName, breed, bookingId,  } = body
 
  try {
   const { data: userData, error: authError } =
     await supabase.auth.admin.createUser({
       email,
       password,
+      email_confirm: true
     })
 
   if (authError || !userData?.user) {

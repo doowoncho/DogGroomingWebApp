@@ -731,7 +731,6 @@ const t = translations[language]
 
 const [loading, setLoading] = useState(false)
 const [error, setError] = useState<string | null>(null)
-const [stage, setStage] = useState<'form' | 'waiting' | 'done'>('form')
 
 const handleCreateAccount = async () => {
   setLoading(true)
@@ -756,37 +755,13 @@ const handleCreateAccount = async () => {
       return
     }
 
-    // 👇 move to waiting screen
-    setStage('waiting')
+    onComplete()
 
   } catch (err) {
     setError('Network error, please try again')
   } finally {
     setLoading(false)
   }
-}
-
-if (stage === 'waiting') {
-  return (
-    <div className="flex flex-col items-center justify-center text-center px-5 py-10">
-      <i className="ti ti-mail text-[48px] text-brand mb-4" />
-
-      <h2 className="text-xl font-extrabold text-text-primary mb-2">
-        Check your email
-      </h2>
-
-      <p className="text-sm text-text-secondary mb-6">
-        We sent you a confirmation link. Once you confirm, you can continue.
-      </p>
-
-      <button
-        onClick={() => window.location.href = '/'}
-        className="w-full bg-brand text-white font-bold py-4 rounded-full"
-      >
-        Go to home
-      </button>
-    </div>
-  )
 }
 
   return (
@@ -1062,7 +1037,7 @@ useEffect(() => {
             draft={draft}
             onComplete={() => {
               setTimeout(() => {
-                window.location.href = '/'
+                window.location.href = '/login'
               }, 500)
             }}
             />
