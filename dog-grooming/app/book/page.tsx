@@ -10,33 +10,9 @@ import { useServices } from '@/lib/hooks/useServices'
 import { useStyles } from '@/lib/hooks/useStyles'
 import { useEffect } from 'react'
 import { supabase } from '@/utils/supabase/client'
+import { DOG_BREEDS } from '@/lib/data'
 
 type Step = 1 | 2 | 3 | 4
-
-const DOG_BREEDS = [
-  'Golden Retriever',
-  'Labrador Retriever',
-  'German Shepherd',
-  'French Bulldog',
-  'Poodle',
-  'Shih Tzu',
-  'Corgi',
-  'Pomeranian',
-  'Husky',
-  'Chihuahua',
-  'Maltese',
-  'Yorkshire Terrier',
-  'Dachshund',
-  'Samoyed',
-  'Border Collie',
-  'Australian Shepherd',
-  'Cavalier King Charles Spaniel',
-  'Bichon Frise',
-  'Bernedoodle',
-  'Goldendoodle',
-  'Miniature Schnauzer',
-  'Schnauzer',
-]
 
 // ─── Step indicator ──────────────────────────────────────────────────────────
 function StepIndicator({ current, total }: { current: Step; total: number }) {

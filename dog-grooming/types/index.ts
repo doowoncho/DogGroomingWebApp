@@ -15,6 +15,12 @@ export interface Breed {
   name: string
 }
 
+export interface Dogs {
+  id: string
+  name: string
+  breed: string | null
+}
+
 export interface GroomingStyle {
   id: number
   name: string
