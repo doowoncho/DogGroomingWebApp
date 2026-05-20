@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Booking } from '@/types'
+import { cookies } from "next/headers";
+import { createServerClient } from '@supabase/ssr';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -75,17 +77,51 @@ export async function POST(req: Request) {
 })
 }
 
-export async function GET(request: Request) {
+export async function GET() {
+  const cookieStore = await cookies(); // ✅ FIX IS HERE
 
-  let query = supabase.from('bookings').select('*')
+ const supabase = createServerClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+  {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          cookieStore.set(name, value, options);
+        });
+      },
+    },
+  }
+);
 
-  const { data, error } = await query.order('date', { ascending: true })
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (error) {
-    console.error('Supabase error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (userError || !user) {
+    return NextResponse.json(
+      { error: "Not authenticated" },
+      { status: 401 }
+    );
   }
 
-  console.log('Bookings retrieved:', data?.length || 0, 'records')
-  return NextResponse.json({ bookings: data ?? [] })
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("user_id", user.id);
+
+    console.log("Bookings data:", data); // Debug log
+
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ bookings: data });
 }

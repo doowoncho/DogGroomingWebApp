@@ -28,7 +28,9 @@ export default function PetsPage() {
   const [editBreed, setEditBreed] = useState('')
   const [editBreedQuery, setEditBreedQuery] = useState('')
   const [showEditBreedDropdown, setShowEditBreedDropdown] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
+  
   useEffect(() => {
     async function loadPets() {
       try {
@@ -74,8 +76,50 @@ async function editDog(id: string, name: string, breed: string) {
   setEditingId(null)
 }
 
+async function deleteDog(id: string) {
+  const res = await fetch('/api/dogs', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  })
+  const json = await res.json()
+  if (!res.ok) { alert(json.error); return }
+  setPets((prev) => prev.filter((p) => p.id !== id))
+}
+
   return (
     <div>
+      {/* Delete confirm popup */}
+    {confirmDeleteId && (
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 pb-100">
+        <div className="w-1/2 bg-white rounded-[22px] p-5 space-y-4">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-3">
+              <i className="ti ti-trash text-red-400 text-[22px]" />
+            </div>
+            <p className="font-nunito font-extrabold text-[17px] text-text-primary">Remove pet?</p>
+            <p className="text-[13px] text-text-muted mt-1">This can't be undone.</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setConfirmDeleteId(null)}
+              className="flex-1 border border-border text-text-secondary font-bold text-[14px] py-3 rounded-xl"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                deleteDog(confirmDeleteId)
+                setConfirmDeleteId(null)
+              }}
+              className="flex-1 bg-red-400 text-white font-bold text-[14px] py-3 rounded-xl"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
       <div className="flex-1 overflow-y-auto no-scrollbar">
         <div className="px-5 pt-5">
           <Link
@@ -109,69 +153,74 @@ async function editDog(id: string, name: string, breed: string) {
               key={pet.id}
               className="bg-white border border-border rounded-[22px] p-4"
             >
-              {editingId === pet.id ? (
-                <div className="space-y-3">
+            {editingId === pet.id ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 rounded-full bg-brand-pale flex items-center justify-center flex-shrink-0">
+                <i className="ti ti-dog text-brand text-[24px]" />
+              </div>
+              <div className="flex-1 space-y-2">
+                <input
+                  className="border border-border rounded-xl px-3 py-2 text-[14px] font-nunito font-extrabold text-text-primary outline-none focus:border-brand"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Name"
+                  autoFocus
+                />
+                <div className="relative">
                   <input
-                    className="w-full border border-border rounded-xl px-3 py-2 text-[14px] font-nunito font-extrabold text-text-primary outline-none focus:border-brand"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Name"
-                    autoFocus
+                    className="border border-border rounded-xl px-3 py-2 text-[14px] text-text-primary outline-none focus:border-brand"
+                    placeholder="Search breed"
+                    value={editBreedQuery}
+                    onChange={(e) => {
+                      setEditBreedQuery(e.target.value)
+                      setEditBreed(e.target.value)
+                      setShowEditBreedDropdown(true)
+                    }}
+                    onFocus={() => setShowEditBreedDropdown(true)}
                   />
-                  <div className="relative">
-                    <input
-                      className="w-full border border-border rounded-xl px-3 py-2 text-[14px] text-text-primary outline-none focus:border-brand"
-                      placeholder="Search breed"
-                      value={editBreedQuery}
-                      onChange={(e) => {
-                        setEditBreedQuery(e.target.value)
-                        setEditBreed(e.target.value)
-                        setShowEditBreedDropdown(true)
-                      }}
-                      onFocus={() => setShowEditBreedDropdown(true)}
-                    />
-                    {showEditBreedDropdown && editBreedQuery.length > 0 && (
-                      <div className="left-0 right-0 mt-1 bg-white border border-border rounded-[14px] shadow-lg z-20">
-                        {DOG_BREEDS
-                          .filter((breed) =>
-                            breed.toLowerCase().includes(editBreedQuery.toLowerCase())
-                          )
-                          .filter((breed) => breed !== editBreedQuery)
-                          .slice(0, 6)
-                          .map((breed) => (
-                            <button
-                              key={breed}
-                              type="button"
-                              onClick={() => {
-                                setEditBreedQuery(breed)
-                                setEditBreed(breed)
-                                setShowEditBreedDropdown(false)
-                              }}
-                              className="w-full text-left px-4 py-3 text-[14px] font-medium text-text-primary hover:bg-surface-secondary"
-                            >
-                              {breed}
-                            </button>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <>{pet.id}</>
-                    <button
-                      onClick={() => editDog(pet.id, editName, editBreed)}
-                      className="flex-1 bg-brand text-white font-bold text-[14px] py-2.5 rounded-xl"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="flex-1 border border-border text-text-secondary font-bold text-[14px] py-2.5 rounded-xl"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                  {showEditBreedDropdown && editBreedQuery.length > 0 && (
+                    <div className="absolute left-0 right-0 mt-1 bg-white border border-border rounded-[14px] shadow-lg z-20">
+                      {DOG_BREEDS
+                        .filter((breed) => breed.toLowerCase().includes(editBreedQuery.toLowerCase()))
+                        .filter((breed) => breed !== editBreedQuery)
+                        .slice(0, 6)
+                        .map((breed) => (
+                          <button
+                            key={breed}
+                            type="button"
+                            onClick={() => {
+                              setEditBreedQuery(breed)
+                              setEditBreed(breed)
+                              setShowEditBreedDropdown(false)
+                            }}
+                            className="w-full text-left px-4 py-3 text-[14px] font-medium text-text-primary hover:bg-surface-secondary"
+                          >
+                            {breed}
+                          </button>
+                        ))}
+                    </div>
+                  )}
                 </div>
-              ) : (
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => editDog(pet.id, editName, editBreed)}
+                className="flex-1 bg-brand text-white font-bold text-[14px] py-2.5 rounded-xl"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setEditingId(null)}
+                className="flex-1 border border-border text-text-secondary font-bold text-[14px] py-2.5 rounded-xl"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-full bg-brand-pale flex items-center justify-center">
                     <i className="ti ti-dog text-brand text-[24px]" />
@@ -194,6 +243,12 @@ async function editDog(id: string, name: string, breed: string) {
                     className="text-sm text-brand font-bold"
                   >
                     Edit
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteId(pet.id)}
+                    className="text-text-muted hover:text-red-400 transition-colors"
+                  >
+                    <i className="ti ti-trash text-[18px]" />
                   </button>
                 </div>
               )}
