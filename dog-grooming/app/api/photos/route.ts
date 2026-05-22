@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SECRET_KEY! // IMPORTANT: server-only
-)
+const getSupabase = () =>
+  createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
 
 export async function POST(req: Request) {
   try {
@@ -24,6 +25,7 @@ export async function POST(req: Request) {
       files.map(async (file) => {
         const path = `bookings/${bookingId}/${crypto.randomUUID()}-${file.name}`
 
+         const supabase = getSupabase()
         const { error } = await supabase.storage
           .from('MungMungPhotos')
           .upload(path, file, {
@@ -46,6 +48,7 @@ export async function POST(req: Request) {
     )
 
     // insert all into DB
+    const supabase = getSupabase()
     const { error: dbError } = await supabase
       .from('photos')
       .insert(uploads)
@@ -73,7 +76,7 @@ export async function GET(req: Request) {
         { status: 400 }
       )
     }
-
+    const supabase = getSupabase()
     const { data, error } = await supabase
       .from('photos')
       .select('id, booking_id, url, path, created_at')

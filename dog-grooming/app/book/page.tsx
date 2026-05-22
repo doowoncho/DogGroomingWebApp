@@ -9,8 +9,8 @@ import type { BookingDraft, GroomingStyle, Service } from '@/types'
 import { useServices } from '@/lib/hooks/useServices'
 import { useStyles } from '@/lib/hooks/useStyles'
 import { useEffect } from 'react'
-import { supabase } from '@/utils/supabase/client'
 import { DOG_BREEDS } from '@/lib/data'
+import { supabase } from '@/utils/supabase/client'
 
 type Step = 1 | 2 | 3 | 4
 
@@ -464,15 +464,23 @@ function ConfirmStep({
   onChange,
   serviceNeedsStyle,
   t,
+  userDogs
 }: {
   draft: BookingDraft
   selectedStyle: GroomingStyle | null
   selectedService: Service | null
   onChange: (fields: Partial<BookingDraft>) => void
   serviceNeedsStyle: boolean
+  userDogs: { name: string; breed: string }[]
   t: any
 }) {
   const [breedQuery, setBreedQuery] = useState(draft.breed ?? '')
+
+  const [dogQuery, setDogQuery] = useState(draft.dogName ?? '')
+
+  const filteredDogs = userDogs
+    .filter((d) => d.name.toLowerCase().includes(dogQuery.toLowerCase()) && d.name !== dogQuery)
+    .slice(0, 4)
 
   const filteredBreeds = DOG_BREEDS.filter((breed) =>
     breed.toLowerCase().includes(breedQuery.toLowerCase()),
@@ -510,18 +518,42 @@ function ConfirmStep({
         </div>
       </div>
 
-      <div className="px-5 mt-4">
-        <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
-          {t.booking.dogName}
-        </label>
-        <input
-          type="text"
-          placeholder="e.g. Mochi"
-          value={draft.dogName}
-          onChange={(e) => onChange({ dogName: e.target.value })}
-          className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
-        />
-      </div>
+     <div className="px-5 mt-4 relative">
+  <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
+    {t.booking.dogName}
+  </label>
+  <input
+    type="text"
+    placeholder="e.g. Curi"
+    value={dogQuery}
+    onChange={(e) => {
+      setDogQuery(e.target.value)
+      onChange({ dogName: e.target.value, breed: e.target.value === '' ? '' : draft.breed })
+    }}
+    className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
+  />
+  {dogQuery.length > 0 && filteredDogs.length > 0 && (
+    <div className="absolute left-5 right-5 mt-1 bg-white border border-border rounded-[14px] shadow-lg overflow-hidden z-20">
+      {filteredDogs.map((dog) => (
+        <button
+          key={dog.name}
+          type="button"
+          onClick={() => {
+            setDogQuery(dog.name)
+            setBreedQuery(dog.breed ?? '')        // auto-fills the breed input
+            onChange({ dogName: dog.name, breed: dog.breed ?? '' })
+          }}
+          className="w-full text-left px-4 py-3 text-[14px] font-medium text-text-primary hover:bg-surface-secondary transition-colors flex items-center justify-between"
+        >
+          <span>{dog.name}</span>
+          {dog.breed && (
+            <span className="text-[12px] text-text-muted">{dog.breed}</span>
+          )}
+        </button>
+      ))}
+    </div>
+  )}
+</div>
 
       <div className="px-5 mt-3 relative">
         <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
@@ -823,6 +855,7 @@ export default function BookPage() {
   const [isConfirmed, setIsConfirmed] = useState(false)
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
+  const [userDogs, setUserDogs] = useState<{ name: string; breed: string }[]>([])
   const [draft, setDraft] = useState<BookingDraft>({
     serviceId: null,
     date: null,
@@ -835,34 +868,30 @@ export default function BookPage() {
     notes: '',
     breed: null,
     bookingId: null,
+    user_id: null
   })
 useEffect(() => {
   async function loadUserData() {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-
-    const user = session?.user
-
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
+    const [{ data: dogs }] = await Promise.all([
+      supabase.from('dogs').select('name, breed').eq('user_id', user.id),
+    ])
+
+    setUserDogs(dogs ?? [])
 
     setDraft((prev) => ({
       ...prev,
       email: prev.email || user.email || '',
-      phone: prev.phone || profile?.phone || '',
+      phone: prev.phone || user.phone || '',
     }))
+
   }
-
+  
   loadUserData()
+  console.log('Loaded user data:', { draft})
 }, [])
-
-
 
 function handlePhotoFiles(files: File[]) {
   setPhotoFiles((prev) => [...prev, ...files])
@@ -902,6 +931,9 @@ function removePhoto(index: number) {
 }
 
 async function handleContinue() {
+const { data: { session } } = await supabase.auth.getSession()
+const user = session?.user
+
   if (step === 2 && !serviceNeedsStyle) {
     setStep(4)
   } else if (step < 4) {
@@ -922,7 +954,8 @@ async function handleContinue() {
       email:          draft.email,
       phone:          draft.phone,
       notes:          draft.notes,
-      bookingId:        draft.bookingId,
+      bookingId:      draft.bookingId,
+      user_id:       user ? user.id : null
     }
 
     try {
@@ -965,6 +998,36 @@ async function handleContinue() {
           body: formData,
         })
       }
+
+      // After the booking succeeds, before setIsConfirmed(true)
+if (user) {  
+  // Check if this dog is already saved for this user
+  const alreadySaved = userDogs.some(
+    (d) => d.name.toLowerCase() === draft.dogName.toLowerCase()
+  )
+
+  if (!alreadySaved && draft.dogName) {
+
+    const res = await fetch('/api/dogs', {
+      method: 'POST',
+      body: JSON.stringify({
+      user_id: user.id,
+      name: draft.dogName,
+      breed: draft.breed ?? null,
+    })
+    })
+
+    if (!res.ok) {
+      const json = await res.json()
+      return
+    }
+
+    // Keep local state in sync so it shows up if they book again in the same session
+    setUserDogs((prev) => [...prev, { name: draft.dogName, breed: draft.breed ?? '' }])
+  }
+}
+
+setIsConfirmed(true)
 
     setIsConfirmed(true)
       } catch (err) {
@@ -1100,6 +1163,7 @@ useEffect(() => {
             selectedService={selectedService}
             onChange={updateDraft}
             serviceNeedsStyle={serviceNeedsStyle}
+            userDogs={userDogs}
             t={t}
           />
         )}

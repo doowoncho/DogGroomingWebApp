@@ -40,6 +40,7 @@ export interface BookingDraft {
   notes: string
   breed: string | null
   bookingId?: string | null
+  user_id?: string | null
 }
 
 export interface Booking {

@@ -1,20 +1,22 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SECRET_KEY!,
-)
-
+const getSupabase = () =>
+  createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
 export async function POST(req: Request) {
   const body = await req.json()
   const { email, password, phone, dogName, breed, bookingId,  } = body
 
  try {
+  const supabase = getSupabase()
   const { data: userData, error: authError } =
     await supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: true
+      email_confirm: true,
+      phone
     })
 
   if (authError || !userData?.user) {
@@ -30,19 +32,6 @@ export async function POST(req: Request) {
       .eq('id', bookingId)
   }
 
-  // 2. profile
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .insert({
-      user_id: user.id,
-      phone,
-    })
-
-  if (profileError) {
-    await supabase.auth.admin.deleteUser(user.id)
-    return Response.json({ error: profileError.message }, { status: 400 })
-  }
-
   // 3. dog
   const { error: dogError } = await supabase.from('dogs').insert({
     user_id: user.id,
@@ -51,7 +40,6 @@ export async function POST(req: Request) {
   })
 
   if (dogError) {
-    await supabase.from('profiles').delete().eq('user_id', user.id)
     await supabase.auth.admin.deleteUser(user.id)
     return Response.json({ error: dogError.message }, { status: 400 })
   }

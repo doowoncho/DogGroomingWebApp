@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import type { Booking } from '@/types'
 import { cookies } from "next/headers";
 import { createServerClient } from '@supabase/ssr';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SECRET_KEY!,
-)
+const getSupabase = () =>
+  createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
 
 export async function POST(req: Request) {
   let body: any
@@ -27,6 +27,7 @@ export async function POST(req: Request) {
   }
 
   // Check slot is still available (race condition protection)
+  const supabase = getSupabase()
   const { data: existing } = await supabase
     .from('bookings')
     .select('time, duration_slots')
@@ -66,6 +67,7 @@ export async function POST(req: Request) {
       email:         body.email,
       phone:         body.phone,
       notes:         body.notes || null,
+      user_id:       body.user_id || null
     }])
     .select()
     .single()

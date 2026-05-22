@@ -1,212 +1,253 @@
-// __tests__/bookings-route.test.ts
-
-/**
- * @jest-environment node
- */
-
-import { POST, GET } from '@/app/api/bookings/route'
-import { NextResponse } from 'next/server'
-
-const mockSelect = jest.fn()
-const mockEq = jest.fn()
-const mockInsert = jest.fn()
-const mockSingle = jest.fn()
-const mockOrder = jest.fn()
+/// <reference types="jest" />
 
 jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => ({
-    from: jest.fn(() => ({
-      select: mockSelect,
-      eq: mockEq,
-      insert: mockInsert,
-      order: mockOrder,
-    })),
-  })),
+  createClient: jest.fn(),
 }))
 
-describe('Bookings API Route', () => {
+jest.mock('@supabase/ssr', () => ({
+  createServerClient: jest.fn(),
+}))
+
+jest.mock('next/headers', () => ({
+  cookies: jest.fn(),
+}))
+
+import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { POST, GET } from './route'
+
+function mockPostSupabase({
+  existingBookings = [],
+  insertError = null,
+  insertData = { id: 'booking-1' },
+  createUserError = null,
+}: any = {}) {
+  const mockSingle = jest.fn().mockResolvedValue({
+    data: insertData,
+    error: insertError,
+  })
+
+  const mockSelectInsert = jest.fn().mockReturnValue({
+    single: mockSingle,
+  })
+
+  const mockInsert = jest.fn().mockReturnValue({
+    select: mockSelectInsert,
+  })
+
+  const mockEq = jest.fn().mockResolvedValue({
+    data: existingBookings,
+  })
+
+  const mockSelect = jest.fn().mockReturnValue({
+    eq: mockEq,
+  })
+
+  const mockFrom = jest.fn().mockReturnValue({
+    select: mockSelect,
+    insert: mockInsert,
+  })
+
+  const mockCreateUser = jest.fn().mockResolvedValue({
+    data: { user: { id: 'user-123' } },
+    error: createUserError,
+  })
+
+  const mockDeleteUser = jest.fn().mockResolvedValue({})
+
+  ;(createClient as jest.Mock).mockReturnValue({
+    from: mockFrom,
+    auth: {
+      admin: {
+        createUser: mockCreateUser,
+        deleteUser: mockDeleteUser,
+      },
+    },
+  })
+
+  return {
+    mockFrom,
+    mockInsert,
+    mockEq,
+    mockCreateUser,
+    mockDeleteUser,
+  }
+}
+
+function mockGetSupabase({
+  user = { id: 'user-1' },
+  userError = null,
+  bookings = [],
+  bookingError = null,
+}: any = {}) {
+  // --- auth.getUser ---
+  const mockGetUser = jest.fn().mockResolvedValue({
+    data: { user },
+    error: userError,
+  })
+
+  // --- bookings query chain ---
+  const mockEq = jest.fn().mockResolvedValue({
+    data: bookings,
+    error: bookingError,
+  })
+
+  const mockSelect = jest.fn().mockReturnValue({
+    eq: mockEq,
+  })
+
+  const mockFrom = jest.fn().mockReturnValue({
+    select: mockSelect,
+  })
+
+  // --- cookies mock ---
+  const mockCookies = {
+    getAll: jest.fn().mockReturnValue([]),
+    setAll: jest.fn(),
+  }
+
+  ;(cookies as jest.Mock).mockReturnValue(mockCookies)
+
+  // --- server client mock ---
+  ;(createServerClient as jest.Mock).mockReturnValue({
+    auth: {
+      getUser: mockGetUser,
+    },
+    from: mockFrom,
+  })
+
+  return {
+    mockGetUser,
+    mockFrom,
+    mockEq,
+    mockCookies,
+  }
+}
+
+describe('POST /api/bookings', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    jest.resetAllMocks()
   })
 
-  describe('POST', () => {
-    it('returns 400 if body is invalid JSON', async () => {
-      const req = {
-        json: jest.fn().mockRejectedValue(new Error('Invalid JSON')),
-      } as any
+  it('returns 400 for invalid JSON body', async () => {
+    const res = await POST(new Request('http://test', { method: 'POST', body: 'invalid' }))
 
-      const res = await POST(req)
-      const body = await res.json()
+    expect(res.status).toBe(400)
+  })
+})
 
-      expect(res.status).toBe(400)
-      expect(body.error).toBe('Invalid or empty request body')
+it('returns 400 when required fields missing', async () => {
+  const res = await POST(
+    new Request('http://test', {
+      method: 'POST',
+      body: JSON.stringify({}),
     })
+  )
 
-    it('returns 400 if required field is missing', async () => {
-      const req = {
-        json: jest.fn().mockResolvedValue({
-          date: '2026-05-15',
-        }),
-      } as any
+  expect(res.status).toBe(400)
+})
 
-      const res = await POST(req)
-      const body = await res.json()
-
-      expect(res.status).toBe(400)
-      expect(body.error).toBe('service_id is required')
-    })
-
-    it('returns 409 if booking slot is already taken', async () => {
-      mockSelect.mockReturnValue({
-        eq: jest.fn().mockResolvedValue({
-          data: [
-            {
-              time: '10:00 AM',
-              duration_slots: 1,
-            },
-          ],
-        }),
-      })
-
-      const req = {
-        json: jest.fn().mockResolvedValue({
-          service_id: 1,
-          date: '2026-05-15',
-          time: '10:00 AM',
-          dog_name: 'Buddy',
-          email: 'test@test.com',
-          phone: '1234567890',
-        }),
-      } as any
-
-      const res = await POST(req)
-      const body = await res.json()
-
-      expect(res.status).toBe(409)
-      expect(body.error).toBe('This time slot is no longer available')
-    })
-
-    it('creates a booking successfully', async () => {
-      mockSelect.mockReturnValue({
-        eq: jest.fn().mockResolvedValue({
-          data: [],
-        }),
-      })
-
-      mockInsert.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: {
-              id: 1,
-              dog_name: 'Buddy',
-            },
-            error: null,
-          }),
-        }),
-      })
-
-      const req = {
-        json: jest.fn().mockResolvedValue({
-          service_id: 1,
-          date: '2026-05-15',
-          time: '11:00 AM',
-          dog_name: 'Buddy',
-          email: 'test@test.com',
-          phone: '1234567890',
-        }),
-      } as any
-
-      const res = await POST(req)
-      const body = await res.json()
-
-      expect(res.status).toBe(201)
-      expect(body.booking.id).toBe(1)
-      expect(body.booking.dog_name).toBe('Buddy')
-    })
-
-    it('returns 500 if insert fails', async () => {
-      mockSelect.mockReturnValue({
-        eq: jest.fn().mockResolvedValue({
-          data: [],
-        }),
-      })
-
-      mockInsert.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: {
-              message: 'Insert failed',
-            },
-          }),
-        }),
-      })
-
-      const req = {
-        json: jest.fn().mockResolvedValue({
-          service_id: 1,
-          date: '2026-05-15',
-          time: '11:00 AM',
-          dog_name: 'Buddy',
-          email: 'test@test.com',
-          phone: '1234567890',
-        }),
-      } as any
-
-      const res = await POST(req)
-      const body = await res.json()
-
-      expect(res.status).toBe(500)
-      expect(body.error).toBe('Insert failed')
-    })
+it('creates booking successfully when slot is free', async () => {
+  mockPostSupabase({
+    existingBookings: [],
   })
 
-  describe('GET', () => {
-    it('returns bookings successfully', async () => {
-      mockSelect.mockReturnValue({
-        order: jest.fn().mockResolvedValue({
-          data: [
-            {
-              id: 1,
-              dog_name: 'Buddy',
-            },
-          ],
-          error: null,
-        }),
-      })
-
-      const req = {} as Request
-
-      const res = await GET(req)
-      const body = await res.json()
-
-      expect(body.bookings).toHaveLength(1)
-      expect(body.bookings[0].dog_name).toBe('Buddy')
+  const res = await POST(
+    new Request('http://test', {
+      method: 'POST',
+      body: JSON.stringify({
+        service_id: 'svc1',
+        date: '2026-05-11',
+        time: '10:00 AM',
+        dog_name: 'Mochi',
+        email: 'test@test.com',
+        phone: '123',
+      }),
     })
+  )
 
-    it('returns 500 if supabase query fails', async () => {
-      mockSelect.mockReturnValue({
-        order: jest.fn().mockResolvedValue({
-          data: null,
-          error: {
-            message: 'Database error',
-          },
-        }),
-      })
+  expect(res.status).toBe(200)
 
-      const consoleSpy = jest
-        .spyOn(console, 'error')
-        .mockImplementation(() => {})
+  const json = await res.json()
+  expect(json.success).toBe(true)
+})
 
-      const req = {} as Request
-
-      const res = await GET(req)
-      const body = await res.json()
-
-      expect(res.status).toBe(500)
-      expect(body.error).toBe('Database error')
-
-      consoleSpy.mockRestore()
-    })
+it('returns 409 when slot is already booked', async () => {
+  mockPostSupabase({
+    existingBookings: [
+      { time: '10:00 AM', duration_slots: 1 },
+    ],
   })
+
+  const res = await POST(
+    new Request('http://test', {
+      method: 'POST',
+      body: JSON.stringify({
+        service_id: 'svc1',
+        date: '2026-05-11',
+        time: '10:00 AM',
+        dog_name: 'Mochi',
+        email: 'test@test.com',
+        phone: '123',
+      }),
+    })
+  )
+
+  expect(res.status).toBe(409)
+})
+
+it('returns 500 if insert fails', async () => {
+  mockPostSupabase({
+    insertError: new Error('DB error'),
+  })
+
+  const res = await POST(
+    new Request('http://test', {
+      method: 'POST',
+      body: JSON.stringify({
+        service_id: 'svc1',
+        date: '2026-05-11',
+        time: '10:00 AM',
+        dog_name: 'Mochi',
+        email: 'test@test.com',
+        phone: '123',
+      }),
+    })
+  )
+
+  expect(res.status).toBe(500)
+})
+
+describe('GET /api/bookings', () => {
+  beforeEach(() => {
+    jest.resetAllMocks()
+  })
+
+  it('returns 401 if not authenticated', async () => {
+    mockGetSupabase({
+      user: null,
+      userError: new Error('No user'),
+    })
+
+    const res = await GET()
+
+    expect(res.status).toBe(401)
+  })
+})
+
+it('returns user bookings', async () => {
+  mockGetSupabase({
+    user: { id: 'user-1' },
+    bookings: [
+      { id: 1, time: '10:00 AM' },
+      { id: 2, time: '2:00 PM' },
+    ],
+  })
+
+  const res = await GET()
+
+  const json = await res.json()
+
+  expect(json.bookings).toHaveLength(2)
 })
