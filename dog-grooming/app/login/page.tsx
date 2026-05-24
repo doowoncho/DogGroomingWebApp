@@ -33,7 +33,7 @@ async function handleLogin() {
     return
   }
 
-  router.push('/')
+  router.push('/admin')
 }
 
 async function handleSignup() {

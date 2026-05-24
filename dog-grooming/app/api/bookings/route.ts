@@ -114,7 +114,6 @@ export async function GET() {
   const { data, error } = await supabase
     .from("bookings")
     .select("*")
-    .eq("user_id", user.id);
 
     console.log("Bookings data:", data); // Debug log
 
