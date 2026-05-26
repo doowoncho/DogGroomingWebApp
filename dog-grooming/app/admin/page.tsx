@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
 import type { User } from '@supabase/supabase-js'
-import { Booking, Service } from '@/types'
+import { Booking, DBService } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 const BOOKING_TABS = ['all', 'pending', 'confirmed', 'completed', 'cancelled', 'declined'] as const
@@ -53,12 +53,12 @@ const delBtnCls = 'w-7 h-7 flex items-center justify-center rounded-lg border bo
 
 // ─── Services panel ───────────────────────────────────────────────────────────
 
-function ServiceRow({ service, onSave, onDelete }: { service: Service; onSave: (s: Service) => void; onDelete: (id: number) => void }) {
+function ServiceRow({ service, onSave, onDelete }: { service: DBService; onSave: (s: DBService) => void; onDelete: (id: number) => void }) {
   const [editing, setEditing] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   // ServiceRow
-const [draft, setDraft] = useState<Service>({
+const [draft, setDraft] = useState<DBService>({
   ...service,
   name_eng:  service.name_eng  ?? '',
   name_kor:  service.name_kor  ?? '',
@@ -146,8 +146,8 @@ async function handleSave() {
   )
 }
 
-function NewServiceRow({ onAdd, onCancel }: { onAdd: (s: Omit<Service, 'id'>) => void; onCancel: () => void }) {
-  const [draft, setDraft] = useState<Omit<Service, 'id'>>({
+function NewServiceRow({ onAdd, onCancel }: { onAdd: (s: Omit<DBService, 'id'>) => void; onCancel: () => void }) {
+  const [draft, setDraft] = useState<Omit<DBService, 'id'>>({
   name_eng:    '',
   name_kor:    '',
   icon:        '',
@@ -178,7 +178,7 @@ function NewServiceRow({ onAdd, onCancel }: { onAdd: (s: Omit<Service, 'id'>) =>
 }
 
 function ServicesTable() {
-  const [services, setServices] = useState<Service[]>([])
+  const [services, setServices] = useState<DBService[]>([])
   const [loading, setLoading] = useState(true)
   const [addingNew, setAddingNew] = useState(false)
   const [nextId, setNextId] = useState(100)
@@ -206,7 +206,7 @@ function ServicesTable() {
 
   }, [])
 
-  function handleSave(updated: Service) {
+  function handleSave(updated: DBService) {
     setServices(prev => prev.map(s => s.id === updated.id ? updated : s))
     // TODO: fetch(`/api/admin/services/${updated.id}`, { method: 'PATCH', body: JSON.stringify(updated) })
   }
@@ -216,7 +216,7 @@ function ServicesTable() {
     // TODO: fetch(`/api/admin/services/${id}`, { method: 'DELETE' })
   }
 
-  function handleAdd(data: Omit<Service, 'id'>) {
+  function handleAdd(data: Omit<DBService, 'id'>) {
     setServices(prev => [...prev, { id: nextId, ...data }])
     setNextId(n => n + 1)
     setAddingNew(false)

@@ -1,9 +1,19 @@
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
-export interface Service {
+export interface DBService {
   id: number
   name_eng: string
   name_kor: string
+  duration: number
+  price: number
+  icon: string
+  slots: number
+  needs_style: boolean
+}
+
+export interface Service {
+  id: number
+  name: string
   duration: number
   price: number
   icon: string
