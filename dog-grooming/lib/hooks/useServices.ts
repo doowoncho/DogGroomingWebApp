@@ -15,7 +15,7 @@ export function useServices(language: string, t: any) {
         // merge DB data with translations
             const merged = json.services.map((svc: any) => ({
         ...svc,
-        name:     language === 'ko' ? svc.name_ko     : svc.name_en
+        name:     language === 'ko' ? svc.name_kor    : svc.name_eng
         }))
 
         setServices(merged)

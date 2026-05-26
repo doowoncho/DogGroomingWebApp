@@ -15,17 +15,51 @@ interface TopBarProps {
 export default function TopBar({ showBack, backHref = '/', title }: TopBarProps) {
   const { language, setLanguage } = useLanguage()
   const [user, setUser] = useState<User | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
-  useEffect(() => {
+useEffect(() => {
+  const loadUser = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  supabase.auth.getUser().then(({ data }) => {
-    setUser(data.user)
-  })
+    setUser(user)
+
+    if (user) {
+      try {
+        const res = await fetch('/api/profile')
+
+        if (res.ok) {
+          const profile = await res.json()
+          setIsAdmin(profile?.is_admin === true)
+        }
+      } catch (err) {
+        console.error(err)
+      }
+    }
+  }
+
+  loadUser()
 
   const {
     data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
+  } = supabase.auth.onAuthStateChange(async (_event, session) => {
     setUser(session?.user ?? null)
+
+    if (session?.user) {
+      try {
+        const res = await fetch('/api/profile')
+
+        if (res.ok) {
+          const profile = await res.json()
+          setIsAdmin(profile?.is_admin === true)
+        }
+      } catch (err) {
+        console.error(err)
+      }
+    } else {
+      setIsAdmin(false)
+    }
   })
 
   return () => {
@@ -36,6 +70,15 @@ export default function TopBar({ showBack, backHref = '/', title }: TopBarProps)
   return (
     <header className="flex items-center justify-between px-5 pt-4 pb-5 md:px-8">
       <div className="flex items-center gap-3">
+        
+        {isAdmin && (
+  <Link
+    href="/admin"
+    className="text-[13px] font-semibold text-brand transition hover:opacity-80"
+  >
+    Admin
+  </Link>
+)}
         {showBack ? (
           <Link
             href={backHref}

@@ -2,13 +2,16 @@
 
 export interface Service {
   id: number
-  name: string
-  duration: string
+  name_eng: string
+  name_kor: string
+  duration: number
   price: number
   icon: string
   slots: number
- needs_style: boolean
+  needs_style: boolean
 }
+
+type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'declined'
 
 export interface Breed {
   id: string
@@ -58,6 +61,7 @@ export interface Booking {
   email: string
   phone: string
   notes: string | null
+  status: BookingStatus
 }
 
 export interface User {

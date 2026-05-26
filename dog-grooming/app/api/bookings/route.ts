@@ -67,7 +67,8 @@ export async function POST(req: Request) {
       email:         body.email,
       phone:         body.phone,
       notes:         body.notes || null,
-      user_id:       body.user_id || null
+      user_id:       body.user_id || null,
+      status:        'pending', // default status
     }])
     .select()
     .single()
@@ -114,8 +115,6 @@ export async function GET() {
   const { data, error } = await supabase
     .from("bookings")
     .select("*")
-
-    console.log("Bookings data:", data); // Debug log
 
   if (error) {
     return NextResponse.json(

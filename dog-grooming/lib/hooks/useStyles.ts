@@ -15,8 +15,8 @@ export function useStyles(language: string, t: any) {
         // merge DB data with translations
             const merged = json.styles.map((style: any) => ({
         ...style,
-        name:     language === 'ko' ? style.name_kor     : style.name_en,
-        desc:     language === 'ko' ? style.desc_kor     : style.desc_en
+        name:     language === 'ko' ? style.name_kor     : style.name_eng,
+        desc:     language === 'ko' ? style.desc_kor     : style.desc_eng
         }))
 
         setStyles(merged)

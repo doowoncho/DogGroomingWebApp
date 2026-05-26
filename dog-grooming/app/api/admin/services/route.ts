@@ -7,56 +7,52 @@ const getSupabase = () =>
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-export async function GET() {
-
-  const { data, error } = await getSupabase()
-    .from("bookings")
-    .select("*")
-
-  if (error) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
-  }
-
-  return NextResponse.json({ bookings: data });
+function durationToSlots(duration: number) {
+  // Assuming 1 slot = 30 minutes
+  return Math.ceil(duration / 60);
 }
 
 export async function PATCH(req: Request) {
-
-  console.log(req)
-
   try {
+
     let body: any
     try {
       body = await req.json()
-      console.log(body)
     } catch {
       return NextResponse.json({ error: 'Invalid or empty request body' }, { status: 400 })
     }
 
-    const { id, status } = body
+    const { id, slots, ...fields } = body
 
     if (!id) {
       return NextResponse.json({ error: 'id is required' }, { status: 400 })
     }
 
+    const update = Object.fromEntries(Object.entries(fields))
+
+    update.slots = durationToSlots(fields.duration)
+
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+    }
+
     const { data, error } = await getSupabase()
-      .from('bookings')
-      .update({ status })
+      .from('services')
+      .update(update)
       .eq('id', id)
       .select()
       .single()
 
+    console.log('Update result:', { data, error })
+
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+        return NextResponse.json({ error: 'Service not found' }, { status: 404 })
       }
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, booking: data })
+    return NextResponse.json({ success: true, service: data })
   } catch (err) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
 import type { User } from '@supabase/supabase-js'
-type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'declined'
+import { Booking, Service } from '@/types'
 
-const TABS = ['all', 'pending', 'confirmed', 'completed', 'cancelled', 'declined'] as const
-type Tab = typeof TABS[number]
+// ─── Types ────────────────────────────────────────────────────────────────────
+const BOOKING_TABS = ['all', 'pending', 'confirmed', 'completed', 'cancelled', 'declined'] as const
+type BookingTab = typeof BOOKING_TABS[number]
 
 const STATUS_STYLES: Record<string, string> = {
   pending:    'bg-amber-50 text-amber-800',
@@ -27,17 +28,414 @@ const STATUS_LABELS: Record<string, string> = {
   declined:   'Declined',
 }
 
-type Booking = {
+type ActiveStatus = 'active' | 'inactive'
+
+type Style = {
   id: number
-  service_id: number
-  date: string
-  time: string
-  dog_name: string
-  phone: string
-  email: string
-  breed: string
-  status: BookingStatus
+  name: string
+  description: string
+  price_modifier: number  // e.g. +10 added on top of base service price
+  status: ActiveStatus
 }
+
+type AdminView = 'bookings' | 'services'
+type CatalogTab = 'services' | 'styles'
+
+// ─── Shared inline-edit primitives ───────────────────────────────────────────
+
+const inputCls = 'text-sm font-nunito border border-border rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 w-full'
+const inputSmCls = 'text-xs font-nunito border border-border rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 w-full'
+const selectCls = 'text-xs font-bold font-nunito border border-border rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 w-full'
+const saveBtnCls = 'text-xs font-bold font-nunito bg-brand text-white rounded-full px-3 py-1.5 hover:bg-brand/90 whitespace-nowrap'
+const cancelBtnCls = 'text-xs font-bold font-nunito bg-gray-100 text-text-secondary rounded-full px-2.5 py-1.5 hover:bg-gray-200'
+const iconBtnCls = 'w-7 h-7 flex items-center justify-center rounded-lg border border-border text-text-muted hover:bg-gray-100 transition-colors'
+const delBtnCls = 'w-7 h-7 flex items-center justify-center rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition-colors'
+
+// ─── Services panel ───────────────────────────────────────────────────────────
+
+function ServiceRow({ service, onSave, onDelete }: { service: Service; onSave: (s: Service) => void; onDelete: (id: number) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  // ServiceRow
+const [draft, setDraft] = useState<Service>({
+  ...service,
+  name_eng:  service.name_eng  ?? '',
+  name_kor:  service.name_kor  ?? '',
+  icon:      service.icon      ?? '',
+  price:     service.price     ?? 0,
+  duration:  service.duration  ?? 30,
+  slots:     service.slots     ?? 1,
+})
+
+async function handleSave() {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const res = await fetch('/api/admin/services', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id:          draft.id,
+          name_eng:    draft.name_eng,
+          name_kor:    draft.name_kor,
+          price:       draft.price,
+          duration:    draft.duration,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? 'Failed to save')
+      }
+      onSave(draft)
+      setEditing(false)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function handleCancel() {
+    setDraft(service)
+    setSaveError(null)
+    setEditing(false)
+  }
+
+    if (editing) {
+    return (
+      <div className="grid grid-cols-[1fr_1fr_80px_80px_64px] gap-3 items-start px-4 py-3 bg-gray-50 border-b border-border">
+        <div className="flex flex-col gap-1.5">
+          <input autoFocus value={draft.name_eng} onChange={e => setDraft(d => ({ ...d, name_eng: e.target.value }))} placeholder="Name (English)" className={`${inputCls} font-bold`} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <input value={draft.name_kor} onChange={e => setDraft(d => ({ ...d, name_kor: e.target.value }))} placeholder="Name (Korean)" className={`${inputCls} font-bold`} />
+        </div>
+        <input type="number" min={0} value={draft.price} onChange={e => setDraft(d => ({ ...d, price: parseFloat(e.target.value) || 0 }))} className={`${inputCls} font-bold`} />
+        <input type="number" min={5} step={5} value={draft.duration} onChange={e => setDraft(d => ({ ...d, duration: parseInt(e.target.value) || 30 }))} className={inputCls} />
+        <div className="flex flex-col items-start gap-1 pt-0.5">
+          <div className="flex items-center gap-1">
+            <button onClick={handleSave} disabled={saving} className={`${saveBtnCls} disabled:opacity-50`}>
+              {saving ? '…' : 'Save'}
+            </button>
+            <button onClick={handleCancel} disabled={saving} className={cancelBtnCls} aria-label="cancel">✕</button>
+          </div>
+          {saveError && <p className="text-[10px] text-red-500">{saveError}</p>}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    // View mode — each column is its own cell now
+    <div className="grid grid-cols-[1fr_1fr_80px_80px_64px] gap-3 items-center px-4 py-3 border-b border-border hover:bg-gray-50 transition-colors">
+      <div>
+        <p className="text-sm font-bold font-nunito text-text-primary">{service.name_eng}</p>
+      </div>
+      <div>
+        <p className="text-sm font-bold font-nunito text-text-primary">{service.name_kor}</p>
+      </div>
+      <p className="text-sm font-bold font-nunito text-text-primary">${service.price}</p>
+      <p className="text-sm text-text-muted">{service.duration} min</p>
+      <div className="flex items-center gap-1">
+        <button onClick={() => setEditing(true)} className={iconBtnCls}><i className="ti ti-edit text-sm" /></button>
+        <button onClick={() => onDelete(service.id)} className={delBtnCls}><i className="ti ti-trash text-sm" /></button>
+      </div>
+    </div>
+  )
+}
+
+function NewServiceRow({ onAdd, onCancel }: { onAdd: (s: Omit<Service, 'id'>) => void; onCancel: () => void }) {
+  const [draft, setDraft] = useState<Omit<Service, 'id'>>({
+  name_eng:    '',
+  name_kor:    '',
+  icon:        '',
+  price:       0,
+  duration:    30,
+  slots:       1,
+  needs_style: false,
+})
+
+  return (
+    <div className="grid grid-cols-[1fr_1fr_80px_80px_64px] gap-2 items-center px-4 py-3 bg-gray-50 border-t border-border">
+      <div className="flex flex-col gap-1.5">
+        <input autoFocus value={draft.name_eng} onChange={e => setDraft(d => ({ ...d, name_eng: e.target.value }))} placeholder="Service name (English)" className={`${inputCls} font-bold`} />
+        <input value={draft.name_kor} onChange={e => setDraft(d => ({ ...d, name_kor: e.target.value }))} placeholder="Service name (Korean)" className={`${inputCls} font-bold`} />
+      </div>
+      <input type="number" min={0} value={draft.price} onChange={e => setDraft(d => ({ ...d, price: parseFloat(e.target.value) || 0 }))} placeholder="$0" className={`${inputCls} font-bold`} />
+      <input type="number" min={5} step={5} value={draft.duration} onChange={e => setDraft(d => ({ ...d, duration: parseInt(e.target.value) || 30 }))} placeholder="min" className={inputCls} />
+      {/* <select value={draft.status} onChange={e => setDraft(d => ({ ...d, status: e.target.value as ActiveStatus }))} className={selectCls}>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select> */}
+      <div className="flex items-center gap-1">
+        <button onClick={() => { if (draft.name_eng.trim()) onAdd(draft) }} className={saveBtnCls}>Add</button>
+        <button onClick={onCancel} className={cancelBtnCls} aria-label="cancel">✕</button>
+      </div>
+    </div>
+  )
+}
+
+function ServicesTable() {
+  const [services, setServices] = useState<Service[]>([])
+  const [loading, setLoading] = useState(true)
+  const [addingNew, setAddingNew] = useState(false)
+  const [nextId, setNextId] = useState(100)
+
+  useEffect(() => {
+    // TODO: replace with fetch('/api/admin/services')
+    async function fetchServices() {
+      setLoading(true)
+      const res = await fetch('/api/services')
+      const json = await res.json()
+      setServices(json.services.map((d: any, i: number) => ({
+        id: d.id,
+        name_eng: d.name_eng,
+        name_kor: d.name_kor,
+        desc_eng: d.desc_eng,
+        desc_kor: d.desc_kor,
+        price: d.price,
+        duration: d.duration,
+        icon: d.icon,
+        needs_style: d.needs_style,
+      })))
+      setLoading(false)
+    }
+    fetchServices()
+
+  }, [])
+
+  function handleSave(updated: Service) {
+    setServices(prev => prev.map(s => s.id === updated.id ? updated : s))
+    // TODO: fetch(`/api/admin/services/${updated.id}`, { method: 'PATCH', body: JSON.stringify(updated) })
+  }
+
+  function handleDelete(id: number) {
+    setServices(prev => prev.filter(s => s.id !== id))
+    // TODO: fetch(`/api/admin/services/${id}`, { method: 'DELETE' })
+  }
+
+  function handleAdd(data: Omit<Service, 'id'>) {
+    setServices(prev => [...prev, { id: nextId, ...data }])
+    setNextId(n => n + 1)
+    setAddingNew(false)
+    // TODO: fetch('/api/admin/services', { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  if (loading) return <div className="p-8 text-sm text-text-muted">Loading…</div>
+
+  return (
+    <div className="bg-white rounded-2xl border border-border overflow-hidden">
+    <div className="grid grid-cols-[1fr_1fr_80px_80px_64px] gap-3 px-4 py-2.5 border-b border-border">
+      {['Name (English)', 'Name (Korean)', 'Price', 'Duration', ''].map(h => (
+        <span key={h} className="text-[10px] font-bold font-nunito text-text-muted uppercase tracking-wide">{h}</span>
+      ))}
+    </div>
+      {services.length === 0 && !addingNew && (
+        <p className="text-center text-sm text-text-muted py-10">No services yet</p>
+      )}
+      {services.map(s => (
+        <ServiceRow key={s.id} service={s} onSave={handleSave} onDelete={handleDelete} />
+      ))}
+      {addingNew && <NewServiceRow onAdd={handleAdd} onCancel={() => setAddingNew(false)} />}
+      {!addingNew && (
+        <div className="px-4 py-3">
+          <button onClick={() => setAddingNew(true)} className="flex items-center gap-1.5 text-xs font-bold font-nunito text-brand hover:text-brand/80 transition-colors">
+            <i className="ti ti-plus text-sm" /> Add service
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Styles panel ─────────────────────────────────────────────────────────────
+
+function StyleRow({ style, onSave, onDelete }: { style: Style; onSave: (s: Style) => void; onDelete: (id: number) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(style)
+
+  function handleSave() {
+    if (!draft.name.trim()) return
+    onSave(draft)
+    setEditing(false)
+  }
+
+  function handleCancel() {
+    setDraft(style)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="grid grid-cols-[1fr_100px_88px_68px] gap-2 items-center px-4 py-3 bg-gray-50 border-b border-border">
+        <div className="flex flex-col gap-1.5">
+          <input autoFocus value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder="Style name" className={`${inputCls} font-bold`} />
+          <input value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} placeholder="Short description" className={inputSmCls} />
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-text-muted">+$</span>
+          <input type="number" min={0} value={draft.price_modifier} onChange={e => setDraft(d => ({ ...d, price_modifier: parseFloat(e.target.value) || 0 }))} className={`${inputCls} font-bold`} />
+        </div>
+        <select value={draft.status} onChange={e => setDraft(d => ({ ...d, status: e.target.value as ActiveStatus }))} className={selectCls}>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <div className="flex items-center gap-1">
+          <button onClick={handleSave} className={saveBtnCls}>Save</button>
+          <button onClick={handleCancel} className={cancelBtnCls} aria-label="cancel">✕</button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-[1fr_100px_88px_68px] gap-2 items-center px-4 py-3 border-b border-border hover:bg-gray-50 transition-colors">
+      <div>
+        <p className="text-sm font-bold font-nunito text-text-primary">{style.name}</p>
+        {style.description && <p className="text-xs text-text-muted mt-0.5">{style.description}</p>}
+      </div>
+      <p className="text-sm font-bold font-nunito text-text-primary">
+        {style.price_modifier > 0 ? `+$${style.price_modifier}` : <span className="text-text-muted font-normal text-xs">No add-on</span>}
+      </p>
+      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full w-fit ${style.status === 'active' ? 'bg-green-50 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+        {style.status === 'active' ? 'Active' : 'Inactive'}
+      </span>
+      <div className="flex items-center gap-1">
+        <button onClick={() => setEditing(true)} className={iconBtnCls}><i className="ti ti-edit text-sm" /></button>
+        <button onClick={() => onDelete(style.id)} className={delBtnCls}><i className="ti ti-trash text-sm" /></button>
+      </div>
+    </div>
+  )
+}
+
+function NewStyleRow({ onAdd, onCancel }: { onAdd: (s: Omit<Style, 'id'>) => void; onCancel: () => void }) {
+  const [draft, setDraft] = useState<Omit<Style, 'id'>>({ name: '', description: '', price_modifier: 0, status: 'active' })
+
+  return (
+    <div className="grid grid-cols-[1fr_100px_88px_68px] gap-2 items-center px-4 py-3 bg-gray-50 border-t border-border">
+      <div className="flex flex-col gap-1.5">
+        <input autoFocus value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder="Style name" className={`${inputCls} font-bold`} />
+        <input value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} placeholder="Short description (optional)" className={inputSmCls} />
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-text-muted">+$</span>
+        <input type="number" min={0} value={draft.price_modifier} onChange={e => setDraft(d => ({ ...d, price_modifier: parseFloat(e.target.value) || 0 }))} placeholder="0" className={`${inputCls} font-bold`} />
+      </div>
+      <select value={draft.status} onChange={e => setDraft(d => ({ ...d, status: e.target.value as ActiveStatus }))} className={selectCls}>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+      <div className="flex items-center gap-1">
+        <button onClick={() => { if (draft.name.trim()) onAdd(draft) }} className={saveBtnCls}>Add</button>
+        <button onClick={onCancel} className={cancelBtnCls} aria-label="cancel">✕</button>
+      </div>
+    </div>
+  )
+}
+
+function StylesTable() {
+  const [styles, setStyles] = useState<Style[]>([])
+  const [loading, setLoading] = useState(true)
+  const [addingNew, setAddingNew] = useState(false)
+  const [nextId, setNextId] = useState(200)
+
+  useEffect(() => {
+    // TODO: replace with fetch('/api/admin/styles')
+    setStyles([
+      { id: 1, name: 'Teddy bear cut',  description: 'Round, fluffy, even all over',          price_modifier: 15, status: 'active' },
+      { id: 2, name: 'Puppy cut',        description: 'Short uniform trim, 1–2 inches',        price_modifier: 10, status: 'active' },
+      { id: 3, name: 'Lion cut',         description: 'Body shaved, mane & paws left full',    price_modifier: 20, status: 'active' },
+      { id: 4, name: 'Kennel cut',       description: 'Practical short trim, low maintenance', price_modifier: 0,  status: 'active' },
+      { id: 5, name: 'Breed standard',   description: 'Cut to AKC/CKC breed specification',   price_modifier: 25, status: 'inactive' },
+    ])
+    setLoading(false)
+  }, [])
+
+  function handleSave(updated: Style) {
+    setStyles(prev => prev.map(s => s.id === updated.id ? updated : s))
+    // TODO: fetch(`/api/admin/styles/${updated.id}`, { method: 'PATCH', body: JSON.stringify(updated) })
+  }
+
+  function handleDelete(id: number) {
+    setStyles(prev => prev.filter(s => s.id !== id))
+    // TODO: fetch(`/api/admin/styles/${id}`, { method: 'DELETE' })
+  }
+
+  function handleAdd(data: Omit<Style, 'id'>) {
+    setStyles(prev => [...prev, { id: nextId, ...data }])
+    setNextId(n => n + 1)
+    setAddingNew(false)
+    // TODO: fetch('/api/admin/styles', { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  if (loading) return <div className="p-8 text-sm text-text-muted">Loading…</div>
+
+  return (
+    <div className="bg-white rounded-2xl border border-border overflow-hidden">
+      <div className="grid grid-cols-[1fr_100px_88px_68px] gap-2 px-4 py-2.5 border-b border-border">
+        {['Style', 'Price add-on', 'Status', ''].map(h => (
+          <span key={h} className="text-[10px] font-bold font-nunito text-text-muted uppercase tracking-wide">{h}</span>
+        ))}
+      </div>
+      {styles.length === 0 && !addingNew && (
+        <p className="text-center text-sm text-text-muted py-10">No styles yet</p>
+      )}
+      {styles.map(s => (
+        <StyleRow key={s.id} style={s} onSave={handleSave} onDelete={handleDelete} />
+      ))}
+      {addingNew && <NewStyleRow onAdd={handleAdd} onCancel={() => setAddingNew(false)} />}
+      {!addingNew && (
+        <div className="px-4 py-3">
+          <button onClick={() => setAddingNew(true)} className="flex items-center gap-1.5 text-xs font-bold font-nunito text-brand hover:text-brand/80 transition-colors">
+            <i className="ti ti-plus text-sm" /> Add style
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Catalog panel (Services + Styles sub-tabs) ───────────────────────────────
+
+function CatalogPanel() {
+  const [tab, setTab] = useState<CatalogTab>('services')
+
+  return (
+    <div>
+      {/* Sub-tab switcher */}
+      <div className="flex items-center gap-1 mb-4 border-b border-border">
+        {(['services', 'styles'] as CatalogTab[]).map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-2.5 text-xs font-bold font-nunito capitalize border-b-2 transition-colors -mb-px ${
+              tab === t ? 'border-brand text-brand' : 'border-transparent text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            {t === 'services' ? 'Services' : 'Styles'}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'services' && (
+        <>
+          <p className="text-xs text-text-muted mb-3">Manage grooming services, base prices, and durations.</p>
+          <ServicesTable />
+        </>
+      )}
+      {tab === 'styles' && (
+        <>
+          <p className="text-xs text-text-muted mb-3">Manage haircut styles and any price add-on applied on top of the base service.</p>
+          <StylesTable />
+        </>
+      )}
+    </div>
+  )
+}
+
+// ─── Main AdminPage ───────────────────────────────────────────────────────────
 
 export default function AdminPage() {
   const router = useRouter()
@@ -45,51 +443,44 @@ export default function AdminPage() {
   const [profile, setProfile] = useState<{ is_admin: boolean } | null>(null)
   const [loading, setLoading] = useState(true)
   const [appointments, setAppointments] = useState<Booking[]>([])
-  const [activeTab, setActiveTab] = useState<Tab>('all')
+  const [activeTab, setActiveTab] = useState<BookingTab>('pending')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Booking | null>(null)
+  const [view, setView] = useState<AdminView>('bookings')
+  type ConfirmAction = { type: 'decline' | 'cancel'; id: string } | null
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
+  const [statusLoading, setStatusLoading] = useState(false)
+const [statusError, setStatusError] = useState<string | null>(null)
 
   useEffect(() => {
     const checkAdmin = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); return }
 
-    if (!user) {
-      router.push('/login')
-      return
-    }
+      const res = await fetch('/api/profile')
+      if (!res.ok) throw new Error('Failed to fetch profile')
 
-    const res = await fetch('/api/profile')
+      const prof = await res.json()
+      if (prof?.is_admin !== true) { router.push('/account'); return }
 
-    if (!res.ok) {
-      throw new Error('Failed to fetch profile')
-    }
-
-    const prof = await res.json()
-    if (prof?.is_admin !== true) {
-      router.push('/account')
-      return
-    }
-
-    setProfile(prof)
-    setUser(user)
-    setLoading(false)
-  }
-
-  const fetchBookings = async () => {
-    try {
-      const res = await fetch('/api/admin/bookings')
-      if (!res.ok) throw new Error('Failed to fetch bookings')
-        const data = await res.json()
-      setAppointments(data.bookings)
-    } catch (err) {
-      console.error(err instanceof Error ? err.message : 'Something went wrong')
-    } finally {
+      setProfile(prof)
+      setUser(user)
       setLoading(false)
     }
-  }
-  
+
+    const fetchBookings = async () => {
+      try {
+        const res = await fetch('/api/admin/bookings')
+        if (!res.ok) throw new Error('Failed to fetch bookings')
+        const data = await res.json()
+        setAppointments(data.bookings)
+      } catch (err) {
+        console.error(err instanceof Error ? err.message : 'Something went wrong')
+      } finally {
+        setLoading(false)
+      }
+    }
+
     checkAdmin()
     fetchBookings()
   }, [])
@@ -99,20 +490,38 @@ export default function AdminPage() {
     router.push('/')
   }
 
-  function updateStatus(id: number, status: Booking['status']) {
-    setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a))
-    setSelected(prev => prev?.id === id ? { ...prev, status } : prev)
-    // TODO: await supabase.from('appointments').update({ status }).eq('id', id)
+async function updateStatus(bookingId: string, bookingStatus: Booking['status']) {
+  setStatusLoading(true)
+  setStatusError(null)
+  try {
+    const res = await fetch('/api/admin/bookings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: bookingId, status: bookingStatus }),
+    })
+
+    if (!res.ok) {
+      const data = await res.json()
+      throw new Error(data.error ?? 'Failed to update status')
+    }
+
+    setAppointments(prev => prev.map(a => a.id === bookingId ? { ...a, status: bookingStatus } : a))
+    setSelected(prev => prev?.id === bookingId ? { ...prev, status: bookingStatus } : prev)
+  } catch (err) {
+    setStatusError(err instanceof Error ? err.message : 'Something went wrong')
+  } finally {
+    setStatusLoading(false)
   }
+}
 
   const filtered = appointments
     .filter(a => activeTab === 'all' || a.status === activeTab)
     .filter(a => {
       const q = search.toLowerCase()
-      return !q || a.dog_name.toLowerCase().includes(q) || a.breed.toLowerCase().includes(q)
+      return !q || a.dog_name.toLowerCase().includes(q) || a.breed?.toLowerCase().includes(q)
     })
 
-  function countFor(tab: Tab) {
+  function countFor(tab: BookingTab) {
     return tab === 'all' ? appointments.length : appointments.filter(a => a.status === tab).length
   }
 
@@ -125,177 +534,252 @@ export default function AdminPage() {
     return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
   }
 
+  function ConfirmDialog({ action, onConfirm, onCancel }: {
+  action: ConfirmAction
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  if (!action) return null
+  const isDecline = action.type === 'decline'
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-2xl p-6 w-72 text-center shadow-lg">
+        <div className="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-3">
+          <i className="ti ti-alert-triangle text-xl text-red-500" />
+        </div>
+        <p className="font-bold font-nunito text-text-primary mb-1.5">
+          {isDecline ? 'Decline this booking?' : 'Cancel this appointment?'}
+        </p>
+        <p className="text-sm text-text-muted mb-5 leading-relaxed">
+          {isDecline
+            ? 'The customer will be notified their booking was declined.'
+            : 'This confirmed appointment will be marked as cancelled.'}
+        </p>
+        <div className="flex flex-col gap-2">
+          <button onClick={onConfirm} className="w-full py-2.5 rounded-full border border-red-200 text-red-600 text-sm font-bold font-nunito hover:bg-red-50">
+            {isDecline ? 'Yes, decline' : 'Yes, cancel it'}
+          </button>
+          <button onClick={onCancel} className="w-full py-2.5 rounded-full border border-border text-text-secondary text-sm font-bold font-nunito hover:bg-gray-50">
+            Keep {isDecline ? 'booking' : 'appointment'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
   if (loading) return <div className="p-8 text-sm text-text-muted">Loading...</div>
-  if (!profile?.is_admin)   return <div className="p-8 text-sm text-text-muted">Not Admin</div>
+  if (!profile?.is_admin) return <div className="p-8 text-sm text-text-muted">Not Admin</div>
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-border px-6 py-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold font-nunito text-text-primary">Admin dashboard</h1>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleSignOut}
-            className="text-sm border border-border rounded-full px-4 py-1.5 text-text-secondary font-nunito font-bold"
-          >
-            Sign out
-          </button>
+        <div className="flex items-center gap-6">
+          <h1 className="text-lg font-bold font-nunito text-text-primary">Admin dashboard</h1>
+          {/* View switcher */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-full p-1">
+            <button
+              onClick={() => setView('bookings')}
+              className={`text-xs font-bold font-nunito px-3.5 py-1.5 rounded-full transition-colors ${
+                view === 'bookings' ? 'bg-white text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'
+              }`}
+            >
+              Bookings
+            </button>
+            <button
+              onClick={() => { setView('services'); setSelected(null) }}
+              className={`text-xs font-bold font-nunito px-3.5 py-1.5 rounded-full transition-colors ${
+                view === 'services' ? 'bg-white text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'
+              }`}
+            >
+              Services & styles
+            </button>
+          </div>
         </div>
+        <button
+          onClick={handleSignOut}
+          className="text-sm border border-border rounded-full px-4 py-1.5 text-text-secondary font-nunito font-bold"
+        >
+          Sign out
+        </button>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-6">
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-3 mb-6">
-          {[
-            { label: 'Total',       value: appointments.length },
-            { label: 'Pending',     value: countFor('pending') },
-            { label: 'Today',       value: appointments.filter(a => a.date === new Date().toISOString().slice(0, 10)).length },
-            { label: 'Completed',   value: countFor('completed') },
-          ].map(s => (
-            <div key={s.label} className="bg-white rounded-2xl border border-border px-4 py-3">
-              <p className="text-xs text-text-muted mb-1">{s.label}</p>
-              <p className="text-2xl font-bold font-nunito text-text-primary">{s.value}</p>
-            </div>
-          ))}
-        </div>
 
-        <div className={`grid gap-4 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
-          {/* Left — list */}
-          <div className="bg-white rounded-2xl border border-border overflow-hidden">
-            {/* Search */}
-            <div className="px-4 pt-4 pb-3 border-b border-border">
-              <input
-                type="text"
-                placeholder="Search dog, breed, or owner…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full text-sm border border-border rounded-full px-4 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand/30"
-              />
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-0 overflow-x-auto border-b border-border">
-              {TABS.map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2.5 text-xs font-nunito font-bold whitespace-nowrap border-b-2 transition-colors ${
-                    activeTab === tab
-                      ? 'border-brand text-brand'
-                      : 'border-transparent text-text-muted hover:text-text-secondary'
-                  }`}
-                >
-                  {STATUS_LABELS[tab] ?? 'All'} <span className="ml-1 opacity-60">{countFor(tab)}</span>
-                </button>
+        {/* ── Bookings view ── */}
+        {view === 'bookings' && (
+          <>
+            <div className="grid grid-cols-4 gap-3 mb-6">
+              {[
+                { label: 'Total',     value: appointments.length },
+                { label: 'Pending',   value: countFor('pending') },
+                { label: 'Today',     value: appointments.filter(a => a.date === new Date().toISOString().slice(0, 10)).length },
+                { label: 'Completed', value: countFor('completed') },
+              ].map(s => (
+                <div key={s.label} className="bg-white rounded-2xl border border-border px-4 py-3">
+                  <p className="text-xs text-text-muted mb-1">{s.label}</p>
+                  <p className="text-2xl font-bold font-nunito text-text-primary">{s.value}</p>
+                </div>
               ))}
             </div>
 
-            {/* Rows */}
-            <div className="divide-y divide-border">
-              {filtered.length === 0 && (
-                <p className="text-center text-sm text-text-muted py-10">No appointments found</p>
-              )}
-              {filtered.map(a => (
-                <div
-                  key={a.id}
-                  onClick={() => setSelected(selected?.id === a.id ? null : a)}
-                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${selected?.id === a.id ? 'bg-brand-pale' : ''}`}
-                >
-                  {/* Avatar */}
-                  <div className="w-9 h-9 rounded-full bg-brand-pale flex items-center justify-center text-xs font-bold font-nunito text-brand flex-shrink-0">
-                    {initials(a.dog_name)}
-                  </div>
+            <div className={`grid gap-4 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
+              <div className="bg-white rounded-2xl border border-border overflow-hidden">
+                <div className="px-4 pt-4 pb-3 border-b border-border">
+                  <input
+                    type="text"
+                    placeholder="Search dog, breed, or owner…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full text-sm border border-border rounded-full px-4 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  />
+                </div>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold font-nunito text-text-primary">{a.dog_name}</span>
-                      <span className="text-xs text-text-muted">{a.breed}</span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${STATUS_STYLES[a.status]}`}>
-                        {STATUS_LABELS[a.status]}
-                      </span>
+                <div className="flex gap-0 overflow-x-auto border-b border-border">
+                  {BOOKING_TABS.map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`px-4 py-2.5 text-xs font-nunito font-bold whitespace-nowrap border-b-2 transition-colors ${
+                        activeTab === tab ? 'border-brand text-brand' : 'border-transparent text-text-muted hover:text-text-secondary'
+                      }`}
+                    >
+                      {STATUS_LABELS[tab] ?? 'All'} <span className="ml-1 opacity-60">{countFor(tab)}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="divide-y divide-border">
+                  {filtered.length === 0 && (
+                    <p className="text-center text-sm text-text-muted py-10">No appointments found</p>
+                  )}
+                  {filtered.map(a => (
+                    <div
+                      key={a.id}
+                      onClick={() => setSelected(selected?.id === a.id ? null : a)}
+                      className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${selected?.id === a.id ? 'bg-brand-pale' : ''}`}
+                    >
+                      <div className="w-9 h-9 rounded-full bg-brand-pale flex items-center justify-center text-xs font-bold font-nunito text-brand flex-shrink-0">
+                        {initials(a.dog_name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold font-nunito text-text-primary">{a.dog_name}</span>
+                          <span className="text-xs text-text-muted">{a.breed}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${STATUS_STYLES[a.status]}`}>
+                            {STATUS_LABELS[a.status]}
+                          </span>
+                        </div>
+                        <p className="text-xs text-text-muted truncate"> · {formatDate(a.date)}</p>
+                      </div>
+                      {/* <div className="flex gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                        {a.status === 'pending' && <>
+                          <button onClick={() => updateStatus(a.id, 'confirmed')} className="text-xs px-2.5 py-1 rounded-full border border-green-300 text-green-700 font-bold hover:bg-green-50">Confirm</button>
+                          <button onClick={() => updateStatus(a.id, 'declined')} className="text-xs px-2.5 py-1 rounded-full border border-red-200 text-red-600 font-bold hover:bg-red-50">Decline</button>
+                        </>}
+                        {a.status === 'confirmed' && <>
+                          <button onClick={() => updateStatus(a.id, 'cancelled')} className="text-xs px-2.5 py-1 rounded-full border border-border text-text-muted font-bold hover:bg-gray-50">Cancel</button>
+                        </>}
+                      </div> */}
                     </div>
-                    <p className="text-xs text-text-muted truncate"> · {formatDate(a.date)}</p>
-                  </div>
-
-                  {/* Quick actions */}
-                  <div className="flex gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                    {a.status === 'pending' && <>
-                      <button onClick={() => updateStatus(a.id, 'confirmed')} className="text-xs px-2.5 py-1 rounded-full border border-green-300 text-green-700 font-bold hover:bg-green-50">Confirm</button>
-                      <button onClick={() => updateStatus(a.id, 'declined')} className="text-xs px-2.5 py-1 rounded-full border border-red-200 text-red-600 font-bold hover:bg-red-50">Decline</button>
-                    </>}
-                    {a.status === 'confirmed' && <>
-                      <button onClick={() => updateStatus(a.id, 'cancelled')} className="text-xs px-2.5 py-1 rounded-full border border-border text-text-muted font-bold hover:bg-gray-50">Cancel</button>
-                    </>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right — detail panel */}
-          {selected && (
-            <div className="bg-white rounded-2xl border border-border p-5 self-start sticky top-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-nunito font-bold text-base text-text-primary">Appointment detail</h2>
-                <button onClick={() => setSelected(null)} className="text-text-muted hover:text-text-secondary">
-                  <i className="ti ti-x text-[18px]" />
-                </button>
-              </div>
-
-              {/* Dog + owner */}
-              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
-                <div className="w-12 h-12 rounded-full bg-brand-pale flex items-center justify-center font-nunito font-extrabold text-base text-brand">
-                  {initials(selected.dog_name)}
-                </div>
-                <div>
-                  <p className="font-nunito font-bold text-text-primary">{selected.dog_name} <span className="font-normal text-text-muted text-sm">· {selected.breed}</span></p>
-                  <p className="text-sm text-text-muted">{}</p>
+                  ))}
                 </div>
               </div>
 
-              {/* Fields */}
-              <div className="space-y-3 mb-4 text-sm">
-                {[
-                  { label: 'Service',  value: selected.service_id },
-                  { label: 'Date',     value: `${formatDate(selected.date)} at ${selected.time}` },
-                  { label: 'Price',    value: `$${selected}` },
-                  { label: 'Email',    value: selected.email },
-                  { label: 'Status',   value: (
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${STATUS_STYLES[selected.status]}`}>
-                      {STATUS_LABELS[selected.status]}
-                    </span>
-                  )},
-                ].map(f => (
-                  <div key={f.label} className="flex justify-between items-center">
-                    <span className="text-text-muted">{f.label}</span>
-                    <span className="font-bold font-nunito text-text-primary text-right">{f.value}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Notes */}
               {selected && (
-                <div className="bg-gray-50 rounded-xl px-3 py-2.5 mb-4">
-                  <p className="text-xs text-text-muted mb-1 uppercase tracking-wide">Notes</p>
-                  <p className="text-sm text-text-primary leading-relaxed">{}</p>
+                <div className="bg-white rounded-2xl border border-border p-5 self-start sticky top-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-nunito font-bold text-base text-text-primary">Appointment detail</h2>
+                    <button onClick={() => setSelected(null)} className="text-text-muted hover:text-text-secondary">
+                      <i className="ti ti-x text-[18px]" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
+                    <div className="w-12 h-12 rounded-full bg-brand-pale flex items-center justify-center font-nunito font-extrabold text-base text-brand">
+                      {initials(selected.dog_name)}
+                    </div>
+                    <div>
+                      <p className="font-nunito font-bold text-text-primary">{selected.dog_name} <span className="font-normal text-text-muted text-sm">· {selected.breed}</span></p>
+                      <p className="text-sm text-text-muted">{}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3 mb-4 text-sm">
+                    {[
+                      { label: 'Service', value: selected.service_id },
+                      { label: 'Date',    value: `${formatDate(selected.date)} at ${selected.time}` },
+                      { label: 'Price',   value: `$${selected}` },
+                      { label: 'Email',   value: selected.email },
+                      { label: 'Status',  value: (
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${STATUS_STYLES[selected.status]}`}>
+                          {STATUS_LABELS[selected.status]}
+                        </span>
+                      )},
+                    ].map(f => (
+                      <div key={f.label} className="flex justify-between items-center">
+                        <span className="text-text-muted">{f.label}</span>
+                        <span className="font-bold font-nunito text-text-primary text-right">{f.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {selected && (
+                    <div className="bg-gray-50 rounded-xl px-3 py-2.5 mb-4">
+                      <p className="text-xs text-text-muted mb-1 uppercase tracking-wide">Notes</p>
+                      <p className="text-sm text-text-primary leading-relaxed">{}</p>
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2">
+                    {selected.status === 'pending' && <>
+                      <button
+                        onClick={() => updateStatus(selected.id, 'confirmed')}
+                        disabled={statusLoading}
+                        className="w-full py-2.5 rounded-full bg-brand text-white text-sm font-bold font-nunito disabled:opacity-50"
+                      >
+                        {statusLoading ? 'Saving…' : 'Confirm appointment'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmAction({ type: 'decline', id: selected.id })}
+                        disabled={statusLoading}
+                        className="w-full py-2.5 rounded-full border border-red-200 text-red-600 text-sm font-bold font-nunito disabled:opacity-50"
+                      >
+                        Decline
+                      </button>
+                    </>}
+                    {selected.status === 'confirmed' && (
+                      <button
+                        onClick={() => setConfirmAction({ type: 'cancel', id: selected.id })}
+                        disabled={statusLoading}
+                        className="w-full py-2.5 rounded-full border border-border text-text-secondary text-sm font-bold font-nunito disabled:opacity-50"
+                      >
+                        Cancel appointment
+                      </button>
+                    )}
+
+                    {statusError && (
+                      <p className="text-xs text-red-500 text-center">{statusError}</p>
+                    )}
+                  </div>
                 </div>
               )}
-
-              {/* Actions */}
-              <div className="flex flex-col gap-2">
-                {selected.status === 'pending' && <>
-                  <button onClick={() => updateStatus(selected.id, 'confirmed')} className="w-full py-2.5 rounded-full bg-brand text-white text-sm font-bold font-nunito">Confirm appointment</button>
-                  <button onClick={() => updateStatus(selected.id, 'declined')} className="w-full py-2.5 rounded-full border border-red-200 text-red-600 text-sm font-bold font-nunito">Decline</button>
-                </>}
-                {selected.status === 'confirmed' && <>
-                  <button onClick={() => updateStatus(selected.id, 'cancelled')} className="w-full py-2.5 rounded-full border border-border text-text-secondary text-sm font-bold font-nunito">Cancel</button>
-                </>}
-              </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
+
+        {/* ── Services & Styles view ── */}
+        {view === 'services' && <CatalogPanel />}
+
       </div>
+
+      <ConfirmDialog
+  action={confirmAction}
+  onConfirm={() => {
+    if (confirmAction) {
+      updateStatus(confirmAction.id, confirmAction.type === 'decline' ? 'declined' : 'cancelled')
+    }
+    setConfirmAction(null)
+  }}
+  onCancel={() => setConfirmAction(null)}
+/>
     </div>
   )
 }
