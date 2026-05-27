@@ -24,9 +24,6 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
-
-  console.log(req)
-
   try {
     let body: any
     try {

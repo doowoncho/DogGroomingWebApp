@@ -9,7 +9,6 @@ const getSupabase = () =>
 
 export async function PATCH(req: Request) {
   try {
-
     let body: any
     try {
       body = await req.json()
@@ -23,10 +22,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'id is required' }, { status: 400 })
     }
 
-    const ALLOWED_FIELDS = ['name', 'description', 'price'] as const
-    const update = Object.fromEntries(
-      Object.entries(fields).filter(([key]) => ALLOWED_FIELDS.includes(key as any))
-    )
+    const update = Object.fromEntries(Object.entries(fields))
 
     if (Object.keys(update).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
@@ -50,4 +46,71 @@ export async function PATCH(req: Request) {
   } catch (err) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+}
+
+export async function POST(req: Request) {
+  try {
+    let body: any
+
+    try {
+      body = await req.json()
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      )
+    }
+
+    const { data, error } = await getSupabase()
+      .from('styles')
+      .insert(body)
+      .select()
+      .single()
+
+    if (error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      style: data,
+    })
+  } catch {
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  const id = Number(params.id)
+
+  console.log('Deleting style with id:', id)
+  if (!id) {
+    return NextResponse.json(
+      { error: "Invalid id" },
+      { status: 400 }
+    )
+  }
+
+  const { error } = await getSupabase()
+    .from("styles")
+    .delete()
+    .eq("id", id)
+
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    )
+  }
+
+  return NextResponse.json({ success: true })
 }

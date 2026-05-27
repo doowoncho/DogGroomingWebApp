@@ -41,6 +41,15 @@ export interface GroomingStyle {
   emoji: string
 }
 
+export interface DBGroomingStyle {
+  id: number
+  name_kor: string
+  desc_kor: string
+  name_eng: string
+  desc_eng: string
+  emoji: string
+}
+
 export interface BookingDraft {
   serviceId: number | null
   date: string | null

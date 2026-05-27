@@ -9,7 +9,6 @@ const getSupabase = () =>
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-
 export async function GET() {
   const { data, error } = await getSupabase()
     .from('styles')

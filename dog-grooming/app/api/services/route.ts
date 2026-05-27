@@ -15,7 +15,5 @@ export async function GET() {
     .select('*')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  console.log('Fetched services:', data)
   return NextResponse.json({ services: data as Service[] })
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
 import type { User } from '@supabase/supabase-js'
-import { Booking, DBService } from '@/types'
+import { Booking, DBGroomingStyle, DBService } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 const BOOKING_TABS = ['all', 'pending', 'confirmed', 'completed', 'cancelled', 'declined'] as const
@@ -26,16 +26,6 @@ const STATUS_LABELS: Record<string, string> = {
   completed:  'Completed',
   cancelled:  'Cancelled',
   declined:   'Declined',
-}
-
-type ActiveStatus = 'active' | 'inactive'
-
-type Style = {
-  id: number
-  name: string
-  description: string
-  price_modifier: number  // e.g. +10 added on top of base service price
-  status: ActiveStatus
 }
 
 type AdminView = 'bookings' | 'services'
@@ -184,7 +174,6 @@ function ServicesTable() {
   const [nextId, setNextId] = useState(100)
 
   useEffect(() => {
-    // TODO: replace with fetch('/api/admin/services')
     async function fetchServices() {
       setLoading(true)
       const res = await fetch('/api/services')
@@ -252,12 +241,11 @@ function ServicesTable() {
 
 // ─── Styles panel ─────────────────────────────────────────────────────────────
 
-function StyleRow({ style, onSave, onDelete }: { style: Style; onSave: (s: Style) => void; onDelete: (id: number) => void }) {
+function StyleRow({ style, onSave, onDelete }: { style: DBGroomingStyle; onSave: (s: DBGroomingStyle) => void; onDelete: (id: number) => void }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(style)
 
   function handleSave() {
-    if (!draft.name.trim()) return
     onSave(draft)
     setEditing(false)
   }
@@ -268,67 +256,124 @@ function StyleRow({ style, onSave, onDelete }: { style: Style; onSave: (s: Style
   }
 
   if (editing) {
-    return (
-      <div className="grid grid-cols-[1fr_100px_88px_68px] gap-2 items-center px-4 py-3 bg-gray-50 border-b border-border">
-        <div className="flex flex-col gap-1.5">
-          <input autoFocus value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder="Style name" className={`${inputCls} font-bold`} />
-          <input value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} placeholder="Short description" className={inputSmCls} />
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-text-muted">+$</span>
-          <input type="number" min={0} value={draft.price_modifier} onChange={e => setDraft(d => ({ ...d, price_modifier: parseFloat(e.target.value) || 0 }))} className={`${inputCls} font-bold`} />
-        </div>
-        <select value={draft.status} onChange={e => setDraft(d => ({ ...d, status: e.target.value as ActiveStatus }))} className={selectCls}>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-        <div className="flex items-center gap-1">
-          <button onClick={handleSave} className={saveBtnCls}>Save</button>
-          <button onClick={handleCancel} className={cancelBtnCls} aria-label="cancel">✕</button>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="grid grid-cols-[1fr_100px_88px_68px] gap-2 items-center px-4 py-3 border-b border-border hover:bg-gray-50 transition-colors">
-      <div>
-        <p className="text-sm font-bold font-nunito text-text-primary">{style.name}</p>
-        {style.description && <p className="text-xs text-text-muted mt-0.5">{style.description}</p>}
+    <div className="grid grid-cols-[1fr_1fr_120px] gap-4 items-start px-4 py-3 bg-gray-50 border-b border-border">
+      
+      {/* Korean */}
+      <div className="flex flex-col gap-1.5">
+        <input
+          autoFocus
+          value={draft.name_kor}
+          onChange={e => setDraft(d => ({ ...d, name_kor: e.target.value }))}
+          placeholder="Style name (Korean)"
+          className={`${inputCls} font-bold`}
+        />
+
+        <input
+          value={draft.desc_kor}
+          onChange={e => setDraft(d => ({ ...d, desc_kor: e.target.value }))}
+          placeholder="Short description (Korean)"
+          className={inputSmCls}
+        />
       </div>
-      <p className="text-sm font-bold font-nunito text-text-primary">
-        {style.price_modifier > 0 ? `+$${style.price_modifier}` : <span className="text-text-muted font-normal text-xs">No add-on</span>}
-      </p>
-      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full w-fit ${style.status === 'active' ? 'bg-green-50 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-        {style.status === 'active' ? 'Active' : 'Inactive'}
-      </span>
-      <div className="flex items-center gap-1">
-        <button onClick={() => setEditing(true)} className={iconBtnCls}><i className="ti ti-edit text-sm" /></button>
-        <button onClick={() => onDelete(style.id)} className={delBtnCls}><i className="ti ti-trash text-sm" /></button>
+
+      {/* English */}
+      <div className="flex flex-col gap-1.5">
+        <input
+          value={draft.name_eng}
+          onChange={e => setDraft(d => ({ ...d, name_eng: e.target.value }))}
+          placeholder="Style name (English)"
+          className={`${inputCls} font-bold`}
+        />
+
+        <input
+          value={draft.desc_eng}
+          onChange={e => setDraft(d => ({ ...d, desc_eng: e.target.value }))}
+          placeholder="Short description (English)"
+          className={inputSmCls}
+        />
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-1 justify-end pt-1">
+        <button onClick={handleSave} className={saveBtnCls}>
+          Save
+        </button>
+
+        <button
+          onClick={handleCancel}
+          className={cancelBtnCls}
+          aria-label="cancel"
+        >
+          ✕
+        </button>
       </div>
     </div>
   )
 }
 
-function NewStyleRow({ onAdd, onCancel }: { onAdd: (s: Omit<Style, 'id'>) => void; onCancel: () => void }) {
-  const [draft, setDraft] = useState<Omit<Style, 'id'>>({ name: '', description: '', price_modifier: 0, status: 'active' })
+return (
+  <div className="grid grid-cols-[1fr_1fr_80px] gap-4 items-start px-4 py-3 border-b border-border hover:bg-gray-50 transition-colors">
+    
+    {/* Korean */}
+    <div>
+      <p className="text-sm font-bold font-nunito text-text-primary">
+        {style.name_kor}
+      </p>
+
+      {style.desc_kor && (
+        <p className="text-xs text-text-muted mt-0.5">
+          {style.desc_kor}
+        </p>
+      )}
+    </div>
+
+    {/* English */}
+    <div>
+      <p className="text-sm font-bold font-nunito text-text-primary">
+        {style.name_eng}
+      </p>
+
+      {style.desc_eng && (
+        <p className="text-xs text-text-muted mt-0.5">
+          {style.desc_eng}
+        </p>
+      )}
+    </div>
+
+    {/* Actions */}
+    <div className="flex items-center gap-1 justify-end">
+      <button
+        onClick={() => setEditing(true)}
+        className={iconBtnCls}
+      >
+        <i className="ti ti-edit text-sm" />
+      </button>
+
+      <button
+        onClick={() => onDelete(style.id)}
+        className={delBtnCls}
+      >
+        <i className="ti ti-trash text-sm" />
+      </button>
+    </div>
+  </div>
+)
+}
+
+function NewStyleRow({ onAdd, onCancel }: { onAdd: (s: Omit<DBGroomingStyle, 'id'>) => void; onCancel: () => void }) {
+  const [draft, setDraft] = useState<Omit<DBGroomingStyle, 'id'>>({ name_kor: '', desc_kor: '', name_eng: '', desc_eng: '', emoji: '' })
 
   return (
     <div className="grid grid-cols-[1fr_100px_88px_68px] gap-2 items-center px-4 py-3 bg-gray-50 border-t border-border">
       <div className="flex flex-col gap-1.5">
-        <input autoFocus value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder="Style name" className={`${inputCls} font-bold`} />
-        <input value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} placeholder="Short description (optional)" className={inputSmCls} />
+        <input autoFocus value={draft.name_kor} onChange={e => setDraft(d => ({ ...d, name_kor: e.target.value }))} placeholder="Style name (Korean)" className={`${inputCls} font-bold`} />
+        <input value={draft.desc_kor} onChange={e => setDraft(d => ({ ...d, desc_kor: e.target.value }))} placeholder="Short description (Korean)" className={inputSmCls} />
+        <input autoFocus value={draft.name_eng} onChange={e => setDraft(d => ({ ...d, name_eng: e.target.value }))} placeholder="Style name (English)" className={`${inputCls} font-bold`} />
+        <input value={draft.desc_eng} onChange={e => setDraft(d => ({ ...d, desc_eng: e.target.value }))} placeholder="Short description (English)" className={inputSmCls} />
       </div>
       <div className="flex items-center gap-1">
-        <span className="text-xs text-text-muted">+$</span>
-        <input type="number" min={0} value={draft.price_modifier} onChange={e => setDraft(d => ({ ...d, price_modifier: parseFloat(e.target.value) || 0 }))} placeholder="0" className={`${inputCls} font-bold`} />
-      </div>
-      <select value={draft.status} onChange={e => setDraft(d => ({ ...d, status: e.target.value as ActiveStatus }))} className={selectCls}>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-      </select>
-      <div className="flex items-center gap-1">
-        <button onClick={() => { if (draft.name.trim()) onAdd(draft) }} className={saveBtnCls}>Add</button>
+        <button onClick={() => { if (draft.name_kor.trim() && draft.name_eng.trim()) onAdd(draft) }} className={saveBtnCls}>Add</button>
         <button onClick={onCancel} className={cancelBtnCls} aria-label="cancel">✕</button>
       </div>
     </div>
@@ -336,46 +381,81 @@ function NewStyleRow({ onAdd, onCancel }: { onAdd: (s: Omit<Style, 'id'>) => voi
 }
 
 function StylesTable() {
-  const [styles, setStyles] = useState<Style[]>([])
+  const [styles, setStyles] = useState<DBGroomingStyle[]>([])
   const [loading, setLoading] = useState(true)
   const [addingNew, setAddingNew] = useState(false)
   const [nextId, setNextId] = useState(200)
 
+ 
   useEffect(() => {
-    // TODO: replace with fetch('/api/admin/styles')
-    setStyles([
-      { id: 1, name: 'Teddy bear cut',  description: 'Round, fluffy, even all over',          price_modifier: 15, status: 'active' },
-      { id: 2, name: 'Puppy cut',        description: 'Short uniform trim, 1–2 inches',        price_modifier: 10, status: 'active' },
-      { id: 3, name: 'Lion cut',         description: 'Body shaved, mane & paws left full',    price_modifier: 20, status: 'active' },
-      { id: 4, name: 'Kennel cut',       description: 'Practical short trim, low maintenance', price_modifier: 0,  status: 'active' },
-      { id: 5, name: 'Breed standard',   description: 'Cut to AKC/CKC breed specification',   price_modifier: 25, status: 'inactive' },
-    ])
+    async function fetchStyles() {
+      setLoading(true)
+      const res = await fetch('/api/styles')
+      const json = await res.json()
+      console.log(json)
+      setStyles(json.styles.map((d: any, i: number) => ({
+        id: d.id,
+        name_eng: d.name_eng,
+        name_kor: d.name_kor,
+        desc_eng: d.desc_eng,
+        desc_kor: d.desc_kor,
+        emoji: d.emoji,
+      })))
+      setLoading(false)
+    }
+    fetchStyles()
     setLoading(false)
   }, [])
 
-  function handleSave(updated: Style) {
+  async function handleSave(updated: DBGroomingStyle) {
     setStyles(prev => prev.map(s => s.id === updated.id ? updated : s))
-    // TODO: fetch(`/api/admin/styles/${updated.id}`, { method: 'PATCH', body: JSON.stringify(updated) })
+    const res = await fetch('/api/admin/styles', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id:          updated.id,
+        name_eng:    updated.name_eng,
+        name_kor:    updated.name_kor,
+        desc_eng:    updated.desc_eng,
+        desc_kor:    updated.desc_kor,
+        emoji:       updated.emoji
+      }),
+    })
+
+    if (!res.ok) {
+      const data = await res.json()
+      throw new Error(data.error ?? 'Failed to save')
+    }
   }
 
-  function handleDelete(id: number) {
-    setStyles(prev => prev.filter(s => s.id !== id))
-    // TODO: fetch(`/api/admin/styles/${id}`, { method: 'DELETE' })
-  }
+async function handleDelete(id: number) {
+  await fetch(`/api/admin/styles/${id}`, {
+    method: "DELETE",
+  })
+  setStyles(prev => prev.filter(s => s.id !== id))
+}
 
-  function handleAdd(data: Omit<Style, 'id'>) {
-    setStyles(prev => [...prev, { id: nextId, ...data }])
-    setNextId(n => n + 1)
-    setAddingNew(false)
-    // TODO: fetch('/api/admin/styles', { method: 'POST', body: JSON.stringify(data) })
-  }
+async function handleAdd(data: Omit<DBGroomingStyle, 'id'>) {
+  const tempId = nextId
 
+  setStyles(prev => [...prev, { id: tempId, ...data }])
+  setNextId(n => n + 1)
+  setAddingNew(false)
+
+  const res = await fetch('/api/admin/styles', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  })
+}
   if (loading) return <div className="p-8 text-sm text-text-muted">Loading…</div>
 
   return (
     <div className="bg-white rounded-2xl border border-border overflow-hidden">
-      <div className="grid grid-cols-[1fr_100px_88px_68px] gap-2 px-4 py-2.5 border-b border-border">
-        {['Style', 'Price add-on', 'Status', ''].map(h => (
+      <div className="grid grid-cols-[1fr_1fr_200px] gap-2 px-4 py-2.5 border-b border-border">
+        {['Style (Korean)', 'Style (English)', ''].map(h => (
           <span key={h} className="text-[10px] font-bold font-nunito text-text-muted uppercase tracking-wide">{h}</span>
         ))}
       </div>
