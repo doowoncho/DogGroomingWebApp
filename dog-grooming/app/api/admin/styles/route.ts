@@ -85,32 +85,3 @@ export async function POST(req: Request) {
     )
   }
 }
-
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  const id = Number(params.id)
-
-  console.log('Deleting style with id:', id)
-  if (!id) {
-    return NextResponse.json(
-      { error: "Invalid id" },
-      { status: 400 }
-    )
-  }
-
-  const { error } = await getSupabase()
-    .from("styles")
-    .delete()
-    .eq("id", id)
-
-  if (error) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    )
-  }
-
-  return NextResponse.json({ success: true })
-}
