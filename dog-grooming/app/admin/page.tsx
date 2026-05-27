@@ -257,7 +257,7 @@ function StyleRow({ style, onSave, onDelete }: { style: DBGroomingStyle; onSave:
 
   if (editing) {
   return (
-    <div className="grid grid-cols-[1fr_1fr_120px] gap-4 items-start px-4 py-3 bg-gray-50 border-b border-border">
+    <div className="grid grid-cols-[1fr_1fr_1fr_120px] gap-4 items-start px-4 py-3 bg-gray-50 border-b border-border">
       
       {/* Korean */}
       <div className="flex flex-col gap-1.5">
@@ -294,6 +294,16 @@ function StyleRow({ style, onSave, onDelete }: { style: DBGroomingStyle; onSave:
         />
       </div>
 
+       {/* Emoji */}
+      <div className="flex flex-col gap-1.5">
+        <input
+          value={draft.emoji}
+          onChange={e => setDraft(d => ({ ...d, emoji: e.target.value }))}
+          placeholder="Emoji"
+          className={`${inputCls} font-bold`}
+        />
+      </div>
+
       {/* Actions */}
       <div className="flex items-center gap-1 justify-end pt-1">
         <button onClick={handleSave} className={saveBtnCls}>
@@ -313,8 +323,7 @@ function StyleRow({ style, onSave, onDelete }: { style: DBGroomingStyle; onSave:
 }
 
 return (
-  <div className="grid grid-cols-[1fr_1fr_80px] gap-4 items-start px-4 py-3 border-b border-border hover:bg-gray-50 transition-colors">
-    
+  <div className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-4 items-start px-4 py-3 border-b border-border hover:bg-gray-50 transition-colors">
     {/* Korean */}
     <div>
       <p className="text-sm font-bold font-nunito text-text-primary">
@@ -339,6 +348,13 @@ return (
           {style.desc_eng}
         </p>
       )}
+    </div>
+
+    {/* emoji */}
+    <div>
+      <p className="text-sm font-bold font-nunito text-text-primary">
+        {style.emoji}
+      </p>
     </div>
 
     {/* Actions */}
@@ -454,8 +470,8 @@ async function handleAdd(data: Omit<DBGroomingStyle, 'id'>) {
 
   return (
     <div className="bg-white rounded-2xl border border-border overflow-hidden">
-      <div className="grid grid-cols-[1fr_1fr_200px] gap-2 px-4 py-2.5 border-b border-border">
-        {['Style (Korean)', 'Style (English)', ''].map(h => (
+      <div className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-2 px-4 py-2.5 border-b border-border">
+        {['Style (Korean)', 'Style (English)', 'emoji'].map(h => (
           <span key={h} className="text-[10px] font-bold font-nunito text-text-muted uppercase tracking-wide">{h}</span>
         ))}
       </div>
@@ -531,6 +547,40 @@ export default function AdminPage() {
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null)
   const [statusLoading, setStatusLoading] = useState(false)
 const [statusError, setStatusError] = useState<string | null>(null)
+const [photos, setPhotos] = useState<
+  { id: number; signedUrl: string }[]
+>([])
+const [photosLoading, setPhotosLoading] = useState(false)
+
+
+  useEffect(() => {
+    if (!selected) return
+
+    async function fetchPhotos() {
+      try {
+        setPhotosLoading(true)
+
+        const res = await fetch(
+          `/api/photos?bookingId=${selected?.id}`
+        )
+
+        if (!res.ok) {
+          throw new Error('Failed to fetch photos')
+        }
+
+        const data = await res.json()
+
+        setPhotos(data.photos)
+      } catch (err) {
+        console.error(err)
+        setPhotos([])
+      } finally {
+        setPhotosLoading(false)
+      }
+    }
+
+    fetchPhotos()
+  }, [selected])
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -587,6 +637,23 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
 
     setAppointments(prev => prev.map(a => a.id === bookingId ? { ...a, status: bookingStatus } : a))
     setSelected(prev => prev?.id === bookingId ? { ...prev, status: bookingStatus } : prev)
+
+    // Send notification email — fire and forget, don't block the UI
+    const booking = appointments.find(a => a.id === bookingId)
+    if (booking?.email) {
+      fetch('/api/admin/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email:     booking.email,
+          dog_name:  booking.dog_name,
+          date:      booking.date,
+          time:      booking.time,
+          status:    bookingStatus,
+        }),
+      }).catch(err => console.error('Email notify failed:', err))
+    }
+
   } catch (err) {
     setStatusError(err instanceof Error ? err.message : 'Something went wrong')
   } finally {
@@ -781,14 +848,13 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
                     </div>
                     <div>
                       <p className="font-nunito font-bold text-text-primary">{selected.dog_name} <span className="font-normal text-text-muted text-sm">· {selected.breed}</span></p>
-                      <p className="text-sm text-text-muted">{}</p>
+                      <p className="text-sm text-text-muted">{selected.phone}</p>
                     </div>
                   </div>
                   <div className="space-y-3 mb-4 text-sm">
                     {[
                       { label: 'Service', value: selected.service_id },
                       { label: 'Date',    value: `${formatDate(selected.date)} at ${selected.time}` },
-                      { label: 'Price',   value: `$${selected}` },
                       { label: 'Email',   value: selected.email },
                       { label: 'Status',  value: (
                         <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${STATUS_STYLES[selected.status]}`}>
@@ -802,12 +868,40 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
                       </div>
                     ))}
                   </div>
-                  {selected && (
-                    <div className="bg-gray-50 rounded-xl px-3 py-2.5 mb-4">
-                      <p className="text-xs text-text-muted mb-1 uppercase tracking-wide">Notes</p>
-                      <p className="text-sm text-text-primary leading-relaxed">{}</p>
-                    </div>
-                  )}
+                  <div className="bg-gray-50 rounded-xl px-3 py-2.5 mb-4">
+                    <p className="text-xs text-text-muted mb-2 uppercase tracking-wide">
+                      Photos
+                    </p>
+
+                    {photosLoading ? (
+                      <p className="text-sm text-text-muted">Loading photos...</p>
+                    ) : photos.length === 0 ? (
+                      <p className="text-sm text-text-muted">
+                        No photos uploaded
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                       {photos.map(photo => (
+                        <a
+                          key={photo.id}
+                          href={photo.signedUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <img
+                            src={photo.signedUrl}
+                            className="w-full aspect-square object-cover rounded-lg border border-border"
+                          />
+                        </a>
+                      ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="bg-gray-50 rounded-xl px-3 py-2.5 mb-4">
+                    <p className="text-xs text-text-muted mb-1 uppercase tracking-wide">Notes</p>
+                    <p className="text-sm text-text-primary leading-relaxed">{selected.notes}</p>
+                  </div>
+   
                   <div className="flex flex-col gap-2">
                     {selected.status === 'pending' && <>
                       <button

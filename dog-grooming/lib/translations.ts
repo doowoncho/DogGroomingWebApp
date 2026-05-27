@@ -56,7 +56,7 @@ export const translations = {
       anySpecialRequests: 'Any special requests...',
       selectDog: 'Select a pet',
       addPet: 'Add a new pet',
-      bookingConfirmed: 'Booking confirmed!',
+      bookingConfirmed: 'Booking sent!',
       bookingReceivedMessage: "We've received your booking. You'll hear from us soon.",
       confirmationMessage: "We've received your booking request. A confirmation email will be sent shortly.",
       createAccount: 'Create account',

@@ -35,13 +35,8 @@ export async function POST(req: Request) {
 
         if (error) throw error
 
-        const { data } = supabase.storage
-          .from('MungMungPhotos')
-          .getPublicUrl(path)
-
         return {
           booking_id: bookingId,
-          url: data.publicUrl,
           path,
         }
       })
@@ -68,6 +63,7 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
+
     const bookingId = searchParams.get('bookingId')
 
     if (!bookingId) {
@@ -76,16 +72,42 @@ export async function GET(req: Request) {
         { status: 400 }
       )
     }
+
     const supabase = getSupabase()
+
     const { data, error } = await supabase
       .from('photos')
-      .select('id, booking_id, url, path, created_at')
+      .select('*')
       .eq('booking_id', bookingId)
-      .order('created_at', { ascending: true })
 
     if (error) throw error
 
-    return NextResponse.json({ photos: data })
+    const photosWithSignedUrls = await Promise.all(
+      data.map(async (photo) => {
+        const { data: signedData, error: signedError } =
+          await supabase.storage
+            .from('MungMungPhotos')
+            .createSignedUrl(photo.path, 60 * 60)
+
+        if (signedError) {
+          console.error(signedError)
+
+          return {
+            ...photo,
+            signedUrl: null,
+          }
+        }
+
+        return {
+          ...photo,
+          signedUrl: signedData.signedUrl,
+        }
+      })
+    )
+
+    return NextResponse.json({
+      photos: photosWithSignedUrls,
+    })
   } catch (err: any) {
     return NextResponse.json(
       { error: err.message ?? 'Failed to fetch photos' },

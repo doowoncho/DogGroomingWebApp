@@ -11,6 +11,8 @@ export async function DELETE( req: NextRequest, context: { params: Promise<{ id:
 {
   const { id } = await context.params
 
+  console.log("Deleting style with id:", id)
+
   if (isNaN(Number(id))) {
     return NextResponse.json(
       { error: "Invalid id" },

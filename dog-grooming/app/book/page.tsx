@@ -658,12 +658,8 @@ function ConfirmationPage({
         <i className="ti ti-circle-check text-brand text-[32px]" aria-hidden="true" />
       </div>
       <h2 className="font-nunito font-extrabold text-2xl text-text-primary mb-2">
-        {t.booking.bookingConfirmed}
-      </h2>
-      <p className="text-text-secondary text-[14px] mb-6">
         {t.booking.bookingReceivedMessage}
-      </p>
-
+      </h2>
       <div className="w-full bg-white rounded-[20px] border border-border p-5 mb-6">
         <div className="space-y-3">
           <div className="flex justify-between pb-3 border-b border-border">
@@ -931,6 +927,8 @@ function removePhoto(index: number) {
 }
 
 async function handleContinue() {
+
+if (isSubmitting) return
 const { data: { session } } = await supabase.auth.getSession()
 const user = session?.user
 
@@ -959,9 +957,10 @@ const user = session?.user
     }
 
     try {
+      const idempotencyKey = crypto.randomUUID()
       const res = await fetch('/api/bookings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Idempotency-Key': idempotencyKey },
         body: JSON.stringify(payload),
       })
 
@@ -1026,9 +1025,6 @@ if (user) {
     setUserDogs((prev) => [...prev, { name: draft.dogName, breed: draft.breed ?? '' }])
   }
 }
-
-setIsConfirmed(true)
-
     setIsConfirmed(true)
       } catch (err) {
         setSubmitError('Network error, please try again')
@@ -1171,7 +1167,7 @@ useEffect(() => {
 
       <div className="px-5 py-3.5 bg-surface">
         <button
-          disabled={!canContinue}
+          disabled={!canContinue || isSubmitting}
           onClick={handleContinue}
           className="w-full bg-brand text-white font-nunito font-bold text-base rounded-full py-4 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity active:opacity-80"
         >
