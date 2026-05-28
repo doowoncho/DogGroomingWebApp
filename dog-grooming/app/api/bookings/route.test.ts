@@ -79,29 +79,22 @@ function mockGetSupabase({
   user = { id: 'user-1' },
   userError = null,
   bookings = [],
-  bookingError = null,
 }: any = {}) {
-  // --- auth.getUser ---
   const mockGetUser = jest.fn().mockResolvedValue({
     data: { user },
     error: userError,
   })
 
-  // --- bookings query chain ---
-  const mockEq = jest.fn().mockResolvedValue({
+  // ✅ FIXED: select returns { data }
+  const mockSelect = jest.fn().mockResolvedValue({
     data: bookings,
-    error: bookingError,
-  })
-
-  const mockSelect = jest.fn().mockReturnValue({
-    eq: mockEq,
+    error: null,
   })
 
   const mockFrom = jest.fn().mockReturnValue({
     select: mockSelect,
   })
 
-  // --- cookies mock ---
   const mockCookies = {
     getAll: jest.fn().mockReturnValue([]),
     setAll: jest.fn(),
@@ -109,7 +102,6 @@ function mockGetSupabase({
 
   ;(cookies as jest.Mock).mockReturnValue(mockCookies)
 
-  // --- server client mock ---
   ;(createServerClient as jest.Mock).mockReturnValue({
     auth: {
       getUser: mockGetUser,
@@ -117,12 +109,7 @@ function mockGetSupabase({
     from: mockFrom,
   })
 
-  return {
-    mockGetUser,
-    mockFrom,
-    mockEq,
-    mockCookies,
-  }
+  return { mockGetUser, mockFrom, mockSelect }
 }
 
 describe('POST /api/bookings', () => {

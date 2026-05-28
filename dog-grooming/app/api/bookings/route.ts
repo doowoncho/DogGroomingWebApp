@@ -30,22 +30,24 @@ export async function POST(req: Request) {
   const supabase = getSupabase()
   const { data: existing } = await supabase
     .from('bookings')
-    .select('time, duration_slots')
+    .select('time, services(slots)')
     .eq('date', body.date)
 
   const bookedTimes = new Set<string>()
+
   const ALL_SLOTS = [
     '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
     '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM',
   ]
 
-  for (const booking of existing ?? []) {
-    const startIndex = ALL_SLOTS.indexOf(booking.time)
-    for (let i = 0; i < (booking.duration_slots ?? 1); i++) {
-      const slot = ALL_SLOTS[startIndex + i]
-      if (slot) bookedTimes.add(slot)
+    for (const booking of existing ?? []) {
+      const startIndex = ALL_SLOTS.indexOf(booking.time)
+      const service = (booking.services?.[0] ?? null) as { slots: number } | null
+      for (let i = 0; i < (service?.slots ?? 1); i++) {
+        const slot = ALL_SLOTS[startIndex + i]
+        if (slot) bookedTimes.add(slot)
+      }
     }
-  }
 
   if (bookedTimes.has(body.time)) {
     return NextResponse.json(
@@ -73,10 +75,13 @@ export async function POST(req: Request) {
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return Response.json({
+if (error) {
+  return NextResponse.json({ error: error.message }, { status: 500 })
+}
+
+return NextResponse.json({
   success: true,
-  booking: data, // MUST include id
+  booking: data,
 })
 }
 

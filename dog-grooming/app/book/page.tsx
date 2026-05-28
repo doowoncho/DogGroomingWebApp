@@ -886,7 +886,6 @@ useEffect(() => {
   }
   
   loadUserData()
-  console.log('Loaded user data:', { draft})
 }, [])
 
 function handlePhotoFiles(files: File[]) {
