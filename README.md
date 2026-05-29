@@ -1,4 +1,4 @@
-# KIIN — Premium Dog Grooming
+# Mung Mung's Grooming— Premium Dog Grooming
 
 A modern, full-stack dog grooming booking web application built with Next.js and TypeScript. Designed for mobile-first users, KIIN lets pet owners book professional grooming services in under a minute.
 
