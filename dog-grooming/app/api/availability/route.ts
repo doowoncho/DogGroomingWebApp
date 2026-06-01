@@ -1,12 +1,6 @@
 // app/api/availability/route.ts
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const getSupabase = () =>
-  createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+import { createClient } from '@/utils/supabase/server'
 
 const ALL_SLOTS = [
   '9:00 AM',
@@ -38,7 +32,7 @@ export async function GET(req: Request) {
     })),
   })
   }
-  const supabase = getSupabase()
+  const supabase = await createClient()
   const { data, error } = await supabase
     .from('bookings')
     .select('time, services(slots)')

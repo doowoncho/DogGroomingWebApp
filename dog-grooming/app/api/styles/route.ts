@@ -1,16 +1,12 @@
 // app/api/styles/route.ts
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/utils/supabase/server'
 import type { GroomingStyle } from '@/types'
 
-const getSupabase = () =>
-  createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
-
 export async function GET() {
-  const { data, error } = await getSupabase()
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
     .from('styles')
     .select('*')
 

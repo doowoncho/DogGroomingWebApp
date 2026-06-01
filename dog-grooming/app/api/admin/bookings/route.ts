@@ -1,15 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const getSupabase = () =>
-  createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function GET() {
+  const supabase = createAdminClient();
 
-  const { data, error } = await getSupabase()
+  const { data, error } = await supabase
     .from("bookings")
     .select("*")
 
@@ -24,6 +19,7 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
+   const supabase = createAdminClient();
   try {
     let body: any
     try {
@@ -39,7 +35,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'id is required' }, { status: 400 })
     }
 
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('bookings')
       .update({ status })
       .eq('id', id)

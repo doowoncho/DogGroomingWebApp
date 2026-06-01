@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { createAdminClient } from "@/utils/supabase/admin";
 
-const getSupabase = () =>
-  createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
 
 export async function DELETE( req: NextRequest, context: { params: Promise<{ id: string }> }) 
 {
   const { id } = await context.params
-
-  console.log("Deleting style with id:", id)
 
   if (isNaN(Number(id))) {
     return NextResponse.json(
@@ -20,7 +13,8 @@ export async function DELETE( req: NextRequest, context: { params: Promise<{ id:
     )
   }
 
-  const { error } = await getSupabase()
+  const supabase = createAdminClient();
+  const { error } = await supabase
     .from("styles")
     .delete()
     .eq("id", id)

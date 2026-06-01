@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const getSupabase = () =>
-  createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function PATCH(req: Request) {
+  const supabase = createAdminClient();
   try {
     let body: any
     try {
@@ -28,7 +23,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
     }
 
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('styles')
       .update(update)
       .eq('id', id)
@@ -49,6 +44,7 @@ export async function PATCH(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const supabase = createAdminClient();
   try {
     let body: any
 
@@ -61,7 +57,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const { data, error } = await getSupabase()
+    const { data, error } = await supabase
       .from('styles')
       .insert(body)
       .select()

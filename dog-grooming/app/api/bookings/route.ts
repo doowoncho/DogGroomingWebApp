@@ -1,13 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/utils/supabase/server'
 import { cookies } from "next/headers";
-import { createServerClient } from '@supabase/ssr';
-
-const getSupabase = () =>
-  createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
 
 export async function POST(req: Request) {
   let body: any
@@ -27,7 +20,7 @@ export async function POST(req: Request) {
   }
 
   // Check slot is still available (race condition protection)
-  const supabase = getSupabase()
+  const supabase = await createClient()
   const { data: existing } = await supabase
     .from('bookings')
     .select('time, services(slots)')
@@ -56,6 +49,8 @@ export async function POST(req: Request) {
     )
   }
 
+
+  const { data: { user } } = await supabase.auth.getUser()
   // Insert booking
   const { data, error } = await supabase
     .from('bookings')
@@ -69,7 +64,7 @@ export async function POST(req: Request) {
       email:         body.email,
       phone:         body.phone,
       notes:         body.notes || null,
-      user_id:       body.user_id || null,
+      user_id: user?.id ?? null,  // ✅ server-controlled
       status:        'pending', // default status
     }])
     .select()
@@ -86,24 +81,8 @@ return NextResponse.json({
 }
 
 export async function GET() {
-  const cookieStore = await cookies(); // ✅ FIX IS HERE
-
- const supabase = createServerClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-  {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options);
-        });
-      },
-    },
-  }
-);
+  const cookieStore = await cookies();
+  const supabase = await createClient() 
 
   const {
     data: { user },
@@ -120,6 +99,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("bookings")
     .select("*")
+    .eq("user_id", user.id) 
 
   if (error) {
     return NextResponse.json(

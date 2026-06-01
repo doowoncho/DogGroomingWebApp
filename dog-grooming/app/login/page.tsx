@@ -17,23 +17,23 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-async function handleLogin() {
-  setLoading(true)
-  setError(null)
+  async function handleLogin() {
+    setLoading(true)
+    setError(null)
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
-  
-  setLoading(false)
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    
+    setLoading(false)
 
-  if (error) {
-    setError(error.message)
-    return
-  }
+    if (error) {
+      setError(error.message)
+      return
+    }
 
-  router.push('/admin')
+    router.push('/admin')
 }
 
 async function handleSignup() {
@@ -55,9 +55,6 @@ async function handleSignup() {
       },
     },
   })
-
-  console.log('SIGNUP DATA:', data)
-  console.log('SIGNUP ERROR:', error)
 
   setLoading(false)
 

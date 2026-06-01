@@ -1,30 +1,9 @@
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server'
-
+import { NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/server";
 
 export async function GET() {
+  const supabase = await createClient();
 
-    const cookieStore = await cookies(); // ✅ FIX IS HERE
-  
-   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        },
-      },
-    }
-  );
-  
   const {
     data: { user },
     error: userError,
@@ -48,6 +27,6 @@ export async function GET() {
       { status: 500 }
     );
   }
-
+  
   return NextResponse.json(data);
 }

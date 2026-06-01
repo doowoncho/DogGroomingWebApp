@@ -1,65 +1,67 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/server";
 
-const getSupabase = () =>
-  createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+const logger = {
+  info:  (msg: string, meta?: object) => console.log(JSON.stringify({ level: "info",  msg, ...meta, ts: new Date().toISOString() })),
+  warn:  (msg: string, meta?: object) => console.warn(JSON.stringify({ level: "warn",  msg, ...meta, ts: new Date().toISOString() })),
+  error: (msg: string, meta?: object) => console.error(JSON.stringify({ level: "error", msg, ...meta, ts: new Date().toISOString() })),
+}
 
 export async function POST(req: Request) {
   try {
     const formData = await req.formData()
-
-    const bookingId = formData.get('bookingId') as string
-    const files = formData.getAll('files') as File[]
+    const bookingId = formData.get("bookingId") as string
+    const files = formData.getAll("files") as File[]
 
     if (!bookingId || !files.length) {
-      return NextResponse.json(
-        { error: 'Missing data' },
-        { status: 400 }
-      )
+      logger.warn("Upload rejected: missing fields", { bookingId, fileCount: files.length })
+      return NextResponse.json({ error: "Missing data" }, { status: 400 })
     }
+
+    logger.info("Upload started", { bookingId, fileCount: files.length })
+
+    const supabase = await createClient()  // create once, not per-file
 
     const uploads = await Promise.all(
       files.map(async (file) => {
         const path = `bookings/${bookingId}/${crypto.randomUUID()}-${file.name}`
 
-         const supabase = getSupabase()
         const { error } = await supabase.storage
-          .from('MungMungPhotos')
-          .upload(path, file, {
-            contentType: file.type,
-            upsert: false,
-          })
+          .from("MungMungPhotos")
+          .upload(path, file, { contentType: file.type, upsert: false })
 
-        if (error) throw error
-
-        return {
-          booking_id: bookingId,
-          path,
+        if (error) {
+          logger.error("Storage upload failed", { bookingId, path, error: error.message })
+          throw error
         }
+
+        logger.info("File uploaded", { bookingId, path })
+        return { booking_id: bookingId, path }
       })
     )
 
-    // insert all into DB
-    const supabase = getSupabase()
-    const { error: dbError } = await supabase
-      .from('photos')
-      .insert(uploads)
+    const { error: dbError } = await supabase.from("photos").insert(uploads)
 
-    if (dbError) throw dbError
+    if (dbError) {
+      logger.error("DB insert failed", {
+        bookingId,
+        fileCount: uploads.length,
+        paths: uploads.map((u) => u.path),
+        error: dbError.message,
+        code: dbError.code,
+      })
+      throw dbError
+    }
 
+    logger.info("Upload complete", { bookingId, fileCount: uploads.length })
     return NextResponse.json({ success: true })
+
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message ?? 'Upload failed' },
-      { status: 500 }
-    )
+    logger.error("Unhandled upload error", { error: err.message, stack: err.stack })
+    return NextResponse.json({ error: "Upload failed" }, { status: 500 })
   }
 }
 
-// ─── GET: fetch photos by bookingId ─────────────────────────────
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
@@ -73,7 +75,7 @@ export async function GET(req: Request) {
       )
     }
 
-    const supabase = getSupabase()
+    const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('photos')

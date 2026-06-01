@@ -1,11 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const getSupabase = () =>
-  createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+import { createAdminClient } from "@/utils/supabase/admin";
 
 function durationToSlots(duration: number) {
   // Assuming 1 slot = 30 minutes
@@ -36,7 +30,8 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
     }
 
-    const { data, error } = await getSupabase()
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
       .from('services')
       .update(update)
       .eq('id', id)
