@@ -10,6 +10,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: dog-grooming
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -19,13 +23,10 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: dog-grooming/package-lock.json
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Run lint (optional but recommended)
-        run: npm run lint
-        continue-on-error: true
 
       - name: Run tests
         run: npm test -- --ci --coverage
@@ -33,22 +34,8 @@ jobs:
       - name: Build app
         run: npm run build
         env:
-          # Add only required env vars for build
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
-
-  typecheck:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - run: npm ci
 
       - name: TypeScript check
         run: npx tsc --noEmit
