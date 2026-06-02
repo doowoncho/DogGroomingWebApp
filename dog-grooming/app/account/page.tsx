@@ -68,6 +68,7 @@ export default function AccountPage() {
   }
 
   const MENU_ITEMS = [
+    { icon: 'ti-edit', label: 'Edit Contact Info', href: '/account/edit' },
     { icon: 'ti-dog', label: t.account.myPets, href: '/account/pets' },
     { icon: 'ti-calendar', label: t.account.bookingHistory, href: '/account/bookings' },
   ]

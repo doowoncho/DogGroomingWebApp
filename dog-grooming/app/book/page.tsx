@@ -130,7 +130,7 @@ function DateTimeStep({
   language: string
   t: any
 }) {
-  const [viewingDate, setViewingDate] = useState(new Date(2026, 4, 8))
+  const [viewingDate, setViewingDate] = useState(new Date().getDate() ? new Date() : new Date(new Date().setDate(1)))  // handle edge case for month-end
   const [slots, setSlots] = useState<{ time: string; available: boolean }[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
 

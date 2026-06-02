@@ -1,19 +1,15 @@
 /// <reference types="jest" />
 
-jest.mock('@supabase/supabase-js', () => ({
+jest.mock('@/utils/supabase/server', () => ({
   createClient: jest.fn(),
 }))
 
-jest.mock('@supabase/ssr', () => ({
-  createServerClient: jest.fn(),
-}))
 
 jest.mock('next/headers', () => ({
   cookies: jest.fn(),
 }))
 
-import { createClient } from '@supabase/supabase-js'
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@/utils/supabase/server'
 import { cookies } from 'next/headers'
 import { POST, GET } from './route'
 
@@ -56,15 +52,19 @@ function mockPostSupabase({
 
   const mockDeleteUser = jest.fn().mockResolvedValue({})
 
-  ;(createClient as jest.Mock).mockReturnValue({
-    from: mockFrom,
-    auth: {
-      admin: {
-        createUser: mockCreateUser,
-        deleteUser: mockDeleteUser,
-      },
+;(createClient as jest.Mock).mockReturnValue({
+  auth: {
+    getUser: jest.fn().mockResolvedValue({   // ← add this
+      data: { user: { id: 'user-123' } },
+      error: null,
+    }),
+    admin: {
+      createUser: mockCreateUser,
+      deleteUser: mockDeleteUser,
     },
-  })
+  },
+  from: mockFrom,
+})
 
   return {
     mockFrom,
@@ -85,10 +85,14 @@ function mockGetSupabase({
     error: userError,
   })
 
-  // ✅ FIXED: select returns { data }
-  const mockSelect = jest.fn().mockResolvedValue({
+  // AFTER
+  const mockEq = jest.fn().mockResolvedValue({   // ← new
     data: bookings,
     error: null,
+  })
+
+  const mockSelect = jest.fn().mockReturnValue({ // ← mockReturnValue, not Resolved
+    eq: mockEq,                                  // ← chain eq
   })
 
   const mockFrom = jest.fn().mockReturnValue({
@@ -102,7 +106,7 @@ function mockGetSupabase({
 
   ;(cookies as jest.Mock).mockReturnValue(mockCookies)
 
-  ;(createServerClient as jest.Mock).mockReturnValue({
+  ;(createClient as jest.Mock).mockReturnValue({
     auth: {
       getUser: mockGetUser,
     },

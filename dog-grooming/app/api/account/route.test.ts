@@ -1,10 +1,10 @@
 /// <reference types="jest" />
 
-jest.mock('@supabase/supabase-js', () => ({
+jest.mock('@/utils/supabase/server', () => ({
   createClient: jest.fn(),
 }))
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/utils/supabase/server'
 import { POST } from './route'
 
 function mockSupabase({

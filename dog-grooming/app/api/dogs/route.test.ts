@@ -4,12 +4,12 @@ jest.mock('next/headers', () => ({
   cookies: jest.fn(),
 }))
 
-jest.mock('@supabase/ssr', () => ({
-  createServerClient: jest.fn(),
+jest.mock('@/utils/supabase/server', () => ({
+  createClient: jest.fn(),
 }))
 
+import { createClient } from '@/utils/supabase/server'
 import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
 import { GET, POST, PATCH, DELETE } from './route'
 
 const MOCK_USER = { id: 'user-123' }
@@ -50,7 +50,7 @@ function mockSupabase({
 
   const mockFrom = jest.fn().mockReturnValue(chain)
 
-  ;(createServerClient as jest.Mock).mockReturnValue({
+  ;(createClient as jest.Mock).mockReturnValue({
     auth: {
       getUser: jest.fn().mockResolvedValue({
         data: { user },
