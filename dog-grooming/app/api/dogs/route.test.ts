@@ -80,28 +80,28 @@ describe('GET /api/dogs', () => {
 
   it('returns 401 when not authenticated', async () => {
     mockSupabase({ user: null, userError: { message: 'not auth' } })
-    const res = await GET()
+    const res = await GET(makeRequest())
     expect(res.status).toBe(401)
     expect(await res.json()).toEqual({ error: 'Not authenticated' })
   })
 
   it('returns the user dogs on success', async () => {
     mockSupabase({ queryData: [MOCK_DOG] })
-    const res = await GET()
+    const res = await GET(makeRequest())
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ dogs: [MOCK_DOG] })
   })
 
   it('returns 500 when the db query fails', async () => {
     mockSupabase({ queryError: { message: 'db error' } })
-    const res = await GET()
+    const res = await GET(makeRequest())
     expect(res.status).toBe(500)
     expect(await res.json()).toEqual({ error: 'db error' })
   })
 
   it('queries the dogs table filtered by user_id', async () => {
     const { mockFrom, chain } = mockSupabase({ queryData: [MOCK_DOG] })
-    await GET()
+    await GET(makeRequest())
     expect(mockFrom).toHaveBeenCalledWith('dogs')
     expect(chain.select).toHaveBeenCalledWith('*')
     expect(chain.eq).toHaveBeenCalledWith('user_id', MOCK_USER.id)

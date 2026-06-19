@@ -1,6 +1,7 @@
 // app/api/availability/route.ts
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { browseLimiter } from "@/lib/rate-limit";
 
 const ALL_SLOTS = [
   '9:00 AM',
@@ -14,6 +15,11 @@ const ALL_SLOTS = [
 ]
 
 export async function GET(req: Request) {
+  const ip = req.headers.get("x-forwarded-for") ?? "anon";
+  const { success } = await browseLimiter.limit(ip);
+  if (!success) {
+    return new Response("Too many requests", { status: 429 });
+  }
   const { searchParams } = new URL(req.url)
   const date = searchParams.get('date')
   const serviceSlotsParam = searchParams.get('slots')

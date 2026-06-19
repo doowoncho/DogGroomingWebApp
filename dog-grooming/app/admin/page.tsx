@@ -104,10 +104,10 @@ async function handleSave() {
         </div>
         <input type="number" min={0} value={draft.price} onChange={e => setDraft(d => ({ ...d, price: parseFloat(e.target.value) || 0 }))} className={`${inputCls} font-bold`} />
         <input type="number" min={5} step={5} value={draft.duration} onChange={e => setDraft(d => ({ ...d, duration: parseInt(e.target.value) || 30 }))} className={inputCls} />
-        <div className="flex flex-col items-start gap-1 pt-0.5">
-          <div className="flex items-center gap-1">
+        <div className="flex flex-col  pt-0.5">
+          <div className="flex items-center">
             <button onClick={handleSave} disabled={saving} className={`${saveBtnCls} disabled:opacity-50`}>
-              {saving ? '…' : 'Save'}
+              💾
             </button>
             <button onClick={handleCancel} disabled={saving} className={cancelBtnCls} aria-label="cancel">✕</button>
           </div>

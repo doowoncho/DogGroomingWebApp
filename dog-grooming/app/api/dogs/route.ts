@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { browseLimiter, dogLimiter } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const ip = req.headers.get("x-forwarded-for") ?? "anon";
+  const { success } = await browseLimiter.limit(ip);
+  if (!success) {
+    return new Response("Too many requests", { status: 429 });
+  }
   const supabase = await createClient();
 
   const {
@@ -32,8 +38,12 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const ip = req.headers.get("x-forwarded-for") ?? "anon";
+  const { success } = await dogLimiter.limit(ip);
+  if (!success) {
+    return new Response("Too many requests", { status: 429 });
+  }
 const supabase = await createClient();
-
 
   const {
     data: { user },

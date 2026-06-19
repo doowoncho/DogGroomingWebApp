@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { cookies } from "next/headers";
+import { bookingLimiter } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
+  const ip = req.headers.get("x-forwarded-for") ?? "anon";
+  const { success } = await bookingLimiter.limit(ip);
+
+  if (!success) {
+    return new Response("Too many booking attempts. Please wait a moment and try again.", {
+      status: 429,
+    });
+  }
+  
   let body: any
 
   try {
