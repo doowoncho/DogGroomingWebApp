@@ -1,10 +1,10 @@
 /// <reference types="jest" />
 
-jest.mock('@/utils/supabase/server', () => ({
-  createClient: jest.fn(),
+jest.mock('@/utils/supabase/admin', () => ({
+  createAdminClient: jest.fn(),
 }))
 
-import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 import { POST } from './route'
 
 function mockSupabase({
@@ -30,7 +30,7 @@ function mockSupabase({
     eq: mockEq,
   })
 
-  ;(createClient as jest.Mock).mockReturnValue({
+  ;(createAdminClient as jest.Mock).mockReturnValue({
     auth: {
       admin: {
         createUser: mockCreateUser,
