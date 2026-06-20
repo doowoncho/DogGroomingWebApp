@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import { Booking, DBGroomingStyle, DBService } from '@/types'
+import { useServices } from '@/lib/hooks/useServices'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 const BOOKING_TABS = ['all', 'pending', 'confirmed', 'completed', 'cancelled', 'declined'] as const
@@ -551,7 +552,7 @@ const [photos, setPhotos] = useState<
   { id: number; signedUrl: string }[]
 >([])
 const [photosLoading, setPhotosLoading] = useState(false)
-
+const { serviceMap } = useServices("eng")
 
   useEffect(() => {
     if (!selected) return
@@ -853,7 +854,7 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
                   </div>
                   <div className="space-y-3 mb-4 text-sm">
                     {[
-                      { label: 'Service', value: selected.service_id },
+                      { label: 'Service', value:  serviceMap[selected.service_id] },
                       { label: 'Date',    value: `${formatDate(selected.date)} at ${selected.time}` },
                       { label: 'Email',   value: selected.email },
                       { label: 'Status',  value: (

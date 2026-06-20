@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { Service } from '@/types'
 
-export function useServices(language: string, t: any) {
+export function useServices(language: string) {
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -12,14 +12,15 @@ export function useServices(language: string, t: any) {
         const res = await fetch('/api/services')
         const json = await res.json()
 
-        // merge DB data with translations
-            const merged = json.services.map((svc: any) => ({
-        ...svc,
-        name:     language === 'ko' ? svc.name_kor    : svc.name_eng
+        const merged = json.services.map((svc: any) => ({
+          ...svc,
+          name: language === 'ko'
+            ? svc.name_kor
+            : svc.name_eng,
         }))
 
         setServices(merged)
-      } catch (err) {
+      } catch {
         setError('Failed to load services')
       } finally {
         setLoading(false)
@@ -27,7 +28,21 @@ export function useServices(language: string, t: any) {
     }
 
     fetchServices()
-  }, [language]) // refetch when language changes so names update
+  }, [language])
 
-  return { services, loading, error }
+  // id → service lookup
+  const serviceMap = useMemo(
+    () =>
+      Object.fromEntries(
+        services.map(s => [s.id, s.name])
+      ),
+    [services]
+  )
+
+  return {
+    services,
+    serviceMap,
+    loading,
+    error,
+  }
 }

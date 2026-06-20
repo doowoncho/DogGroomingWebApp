@@ -55,7 +55,7 @@ function ServiceStep({
   language: string
   t: any
 }) {
-  const { services, loading, error  } = useServices(language, t)
+  const { services, loading, error  } = useServices(language)
 
   const selected = services.find((s) => s.id === selectedServiceId) ?? null
 
@@ -846,7 +846,7 @@ export default function BookPage() {
   const { language } = useLanguage()
   const t = translations[language]
   const { styles } = useStyles(language, t)
-  const { services } = useServices(language, t)
+  const { services } = useServices(language)
   const [step, setStep] = useState<Step>(1)
   const [isConfirmed, setIsConfirmed] = useState(false)
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
@@ -996,6 +996,21 @@ const user = session?.user
           body: formData,
         })
       }
+
+      await fetch('/api/admin/notifyAdmin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        service: selectedService?.name,
+        email: draft.email,
+        phone: draft.phone,
+        dog_name: draft.dogName,
+        date: draft.date,
+        time: draft.time,
+      }),
+    })
 
       // After the booking succeeds, before setIsConfirmed(true)
 if (user) {  
