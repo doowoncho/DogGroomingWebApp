@@ -46,10 +46,10 @@ export default function HomePage() {
         {/* Greeting */}
         <div className="px-5 pt-1">
           <p className="text-[13px] text-text-muted font-semibold">
-            {language === 'en' ? 'At-Home grooming salon' : '홈 그루밍 살롱'}
+            Tuscany, NW Calgary
           </p>
           <h2 className="font-nunito font-extrabold text-xl text-text-primary mt-0.5">
-            {language === 'en' ? 'Private grooming for a calmer experience' : '더 편안한 경험을 위한 프라이빗 그루밍'}
+            {language === 'en' ? 'Private grooming in for a calmer experience' : '더 편안한 경험을 위한 프라이빗 그루밍'}
           </h2>
         </div>
 

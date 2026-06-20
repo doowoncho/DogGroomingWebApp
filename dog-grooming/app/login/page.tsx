@@ -46,24 +46,15 @@ async function handleSignup() {
     return
   }
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: fullName,
-      },
-    },
+  const res = await fetch('/api/account', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, fullName}),
   })
 
   setLoading(false)
 
-  if (error) {
-    setError(error.message)
-    return
-  }
-
-  router.push('/account')
+  router.push('/login')
 }
 
   return (
