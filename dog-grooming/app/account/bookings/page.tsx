@@ -23,7 +23,7 @@ type Booking = {
 export default function BookingHistoryPage() {
   const { language } = useLanguage()
   const t = translations[language]
-  const { services } = useServices(language, t)
+  const { services } = useServices(language)
 
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
