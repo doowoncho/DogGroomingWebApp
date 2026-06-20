@@ -117,10 +117,6 @@ function mockGetSupabase({
 }
 
 describe('POST /api/bookings', () => {
-  beforeEach(() => {
-    jest.resetAllMocks()
-  })
-
   it('returns 400 for invalid JSON body', async () => {
     const res = await POST(new Request('http://test', { method: 'POST', body: 'invalid' }))
 
@@ -211,9 +207,6 @@ it('returns 500 if insert fails', async () => {
 })
 
 describe('GET /api/bookings', () => {
-  beforeEach(() => {
-    jest.resetAllMocks()
-  })
 
   it('returns 401 if not authenticated', async () => {
     mockGetSupabase({

@@ -8,6 +8,12 @@ jest.mock('@/utils/supabase/server', () => ({
   createClient: jest.fn(),
 }))
 
+jest.mock('@/lib/rate-limit', () => ({
+  bookingLimiter: { limit: jest.fn().mockResolvedValue({ success: true, limit: 5, remaining: 4, reset: Date.now() + 60000 }) },
+  dogLimiter: { limit: jest.fn().mockResolvedValue({ success: true, limit: 5, remaining: 4, reset: Date.now() + 60000 }) },
+  browseLimiter: { limit: jest.fn().mockResolvedValue({ success: true, limit: 30, remaining: 29, reset: Date.now() + 60000 }) },
+}))
+
 import { createClient } from '@/utils/supabase/server'
 import { cookies } from 'next/headers'
 import { GET, POST, PATCH, DELETE } from './route'
@@ -76,7 +82,6 @@ function makeRequest(body?: object, method = 'POST') {
 }
 
 describe('GET /api/dogs', () => {
-  beforeEach(() => jest.resetAllMocks())
 
   it('returns 401 when not authenticated', async () => {
     mockSupabase({ user: null, userError: { message: 'not auth' } })
@@ -109,8 +114,6 @@ describe('GET /api/dogs', () => {
 })
 
 describe('POST /api/dogs', () => {
-  beforeEach(() => jest.resetAllMocks())
-
   it('returns 401 when not authenticated', async () => {
     mockSupabase({ user: null, userError: { message: 'not auth' } })
     const res = await POST(makeRequest({ name: 'Mochi', breed: 'Shiba Inu' }))
@@ -144,7 +147,6 @@ describe('POST /api/dogs', () => {
 })
 
 describe('PATCH /api/dogs', () => {
-  beforeEach(() => jest.resetAllMocks())
 
   it('returns 401 when not authenticated', async () => {
     mockSupabase({ user: null })
@@ -175,7 +177,6 @@ describe('PATCH /api/dogs', () => {
 })
 
 describe('DELETE /api/dogs', () => {
-  beforeEach(() => jest.resetAllMocks())
 
   it('returns 401 when not authenticated', async () => {
     mockSupabase({ user: null })

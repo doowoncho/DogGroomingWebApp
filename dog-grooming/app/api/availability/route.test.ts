@@ -24,9 +24,6 @@ function mockSupabase(data: any[], error: any = null) {
 }
 
 describe('GET /api/availability', () => {
-  beforeEach(() => {
-    jest.resetAllMocks()
-  })
 
   // ─── Input validation ────────────────────────────────────────────────────
   it('returns 400 when date is missing', async () => {
