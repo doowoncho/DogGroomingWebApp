@@ -54,7 +54,7 @@ async function handleSignup() {
 
   setLoading(false)
 
-  router.push('/login')
+  window.location.reload();
 }
 
   return (
