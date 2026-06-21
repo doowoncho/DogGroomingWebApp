@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/utils/supabase/client'
-import type { User } from '@supabase/supabase-js'
 import { Booking, DBGroomingStyle, DBService } from '@/types'
 import { useServices } from '@/lib/hooks/useServices'
 
@@ -536,8 +535,6 @@ function CatalogPanel() {
 
 export default function AdminPage() {
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<{ is_admin: boolean } | null>(null)
   const [loading, setLoading] = useState(true)
   const [appointments, setAppointments] = useState<Booking[]>([])
   const [activeTab, setActiveTab] = useState<BookingTab>('pending')
@@ -584,21 +581,6 @@ const { serviceMap } = useServices("eng")
   }, [selected])
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
-
-      const res = await fetch('/api/profile')
-      if (!res.ok) throw new Error('Failed to fetch profile')
-
-      const prof = await res.json()
-      if (prof?.is_admin !== true) { router.push('/account'); return }
-
-      setProfile(prof)
-      setUser(user)
-      setLoading(false)
-    }
-
     const fetchBookings = async () => {
       try {
         const res = await fetch('/api/admin/bookings')
@@ -611,8 +593,6 @@ const { serviceMap } = useServices("eng")
         setLoading(false)
       }
     }
-
-    checkAdmin()
     fetchBookings()
   }, [])
 
@@ -717,7 +697,6 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
 }
 
   if (loading) return <div className="p-8 text-sm text-text-muted">Loading...</div>
-  if (!profile?.is_admin) return <div className="p-8 text-sm text-text-muted">Not Admin</div>
 
   return (
     <div className="min-h-screen bg-gray-50">

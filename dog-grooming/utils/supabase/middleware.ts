@@ -25,7 +25,34 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (!user) {
+      return redirectWithCookies(request, supabaseResponse, '/login')
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile?.is_admin) {
+      return redirectWithCookies(request, supabaseResponse, '/account')
+    }
+  }
 
   return supabaseResponse
+}
+
+function redirectWithCookies(request: NextRequest, supabaseResponse: NextResponse, pathname: string) {
+  const url = request.nextUrl.clone()
+  url.pathname = pathname
+  const redirectResponse = NextResponse.redirect(url)
+  // carry over any refreshed auth cookies, or the user gets logged out mid-redirect
+  supabaseResponse.cookies.getAll().forEach(cookie => {
+    redirectResponse.cookies.set(cookie.name, cookie.value)
+  })
+  return redirectResponse
 }
