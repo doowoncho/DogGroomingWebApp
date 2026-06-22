@@ -27,9 +27,10 @@ export async function GET(req: Request) {
 
   if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 })
 
-  const todayString = new Date().toLocaleDateString('en-CA')
+  const todayString = new Date().toLocaleDateString('en-CA', {
+    timeZone: 'America/Edmonton',
+  })
   const isSameDay = date === todayString
-
 
   if (isSameDay) {
     console.log("availability for today, marking past slots as unavailable")
