@@ -6,9 +6,12 @@ const createJestConfig = nextJest({
 
 const config = {
   testEnvironment: 'jsdom',
+  // run this before tests to ensure module mocks are in place
+  setupFiles: ['<rootDir>/jest.setup.mock.ts'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^@upstash/redis$': '<rootDir>/__mocks__/upstash-redis.ts',
   },
 }
 
