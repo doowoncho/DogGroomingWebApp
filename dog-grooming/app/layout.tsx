@@ -45,11 +45,11 @@ export default function RootLayout({
           <div className="app-shell flex flex-col h-dvh">
             <TopBar />
 
-            <div className="flex-1 overflow-y-auto no-scrollbar pb-20">
+            <div className="flex-1 overflow-y-auto no-scrollbar">
               {children}
             </div>
 
-            <BottomNav />
+            {/* <BottomNav /> */}
           </div>
         </LanguageProvider>
       </body>

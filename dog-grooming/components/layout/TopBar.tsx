@@ -68,7 +68,8 @@ useEffect(() => {
 }, [])
 
   return (
-    <header className="flex items-center justify-between px-5 pt-4 pb-5 md:px-8">
+    <header className="px-5 pt-4 pb-5">
+      <div className="mx-auto flex max-w-[850px] items-center justify-between">
       <div className="flex items-center gap-3">
         
         {isAdmin && (
@@ -103,33 +104,12 @@ useEffect(() => {
           <span className="font-nunito font-extrabold text-xl text-text-primary">{title}</span>
         ) : (
           <span className="font-nunito font-extrabold text-[22px] text-text-primary">
-            Mung Mung's<span className="text-brand"> grooming</span>
+            Mung Mung<span className="text-brand"> Grooming</span>
           </span>
         )}
       </div>
 
       <div className="hidden items-center gap-8 md:flex">
-        <Link href="/" className="text-[13px] font-semibold text-text-secondary transition hover:text-text-primary">
-          {language === 'en' ? 'Home' : '홈'}
-        </Link>
-        <Link href="/book" className="text-[13px] font-semibold text-text-secondary transition hover:text-text-primary">
-          {language === 'en' ? 'Book' : '예약'}
-        </Link>
-       {user ? (
-          <Link
-            href="/account"
-            className="text-[13px] font-semibold text-text-secondary transition hover:text-text-primary"
-          >
-            {language === 'en' ? 'Account' : '계정'}
-          </Link>
-        ) : (
-          <Link
-            href="/login"
-            className="text-[13px] font-semibold text-text-secondary transition hover:text-text-primary"
-          >
-            {language === 'en' ? 'Login' : '로그인'}
-          </Link>
-        )}
         <div className="flex items-center gap-2 pl-4 border-l border-border">
           <button
             onClick={() => setLanguage('en')}
@@ -161,7 +141,7 @@ useEffect(() => {
         >
           {language === 'en' ? 'EN' : '한'}
         </button>
-        {user ? (
+        {/* {user ? (
           <Link
             href="/account"
             className="w-9 h-9 rounded-full bg-brand-light flex items-center justify-center font-nunito font-bold text-sm text-white"
@@ -175,7 +155,9 @@ useEffect(() => {
           >
             <i className="ti ti-login text-[16px]" />
           </Link>
-        )}
+        )} */}
+      </div>
+
       </div>
     </header>
   )

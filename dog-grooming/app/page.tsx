@@ -1,100 +1,198 @@
 'use client'
 
-import Link from 'next/link'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/components/LanguageContext'
 import { translations } from '@/lib/translations'
 
-const PHOTOS = [
-  { name: 'Charlie',   breed: 'Golden Retriever', bg: 'from-[#ffd89b] to-[#ff8c42]'  },
-  { name: 'Biscuit', breed: 'Labrador',          bg: 'from-[#d4ecd4] to-[#7bc47b]'  },
-  { name: 'Coco',    breed: 'Poodle',            bg: 'from-[#ddd6f3] to-[#a18cd1]'  },
-  { name: 'Daisy',   breed: 'Shih Tzu',          bg: 'from-[#fbc2eb] to-[#e2789e]'  },
-]
+const DOG_SIZES = [
+  { value: 'S', label: 'S', lbs: '0–25 lbs', kg: '0–11 kg' },
+  { value: 'M', label: 'M', lbs: '25–60 lbs', kg: '11–27 kg' },
+  { value: 'L', label: 'L', lbs: '60+ lbs', kg: '27+ kg' },
+] as const
 
-const TRUST = [
-  { icon: 'ti-certificate', labelKey: 'Korean Certified groomer' },
-  { icon: 'ti-home-heart',  labelKey: 'Cage-free salon'    },
-  { icon: 'ti-star',        labelKey: '5★ on Google'       },
-]
-
-const REVIEWS = [
-  {
-    initials: 'SK',
-    name: 'Sarah K.',
-    breed: 'Golden Retriever owner',
-    text: '"Dog came home looking absolutely incredible. Kiin is so gentle and professional — we\'ll never go anywhere else."',
-    avatarBg: 'bg-brand-pale',
-    avatarText: 'text-brand',
-  },
-  {
-    initials: 'JL',
-    name: 'James L.',
-    breed: 'Labrador owner',
-    text: '"Booked in 30 seconds and Biscuit was done in an hour. Best grooming experience we\'ve had in Calgary."',
-    avatarBg: 'bg-[#eaf3de]',
-    avatarText: 'text-[#3B6D11]',
-  },
-]
+type DogSize = typeof DOG_SIZES[number]['value']
 
 export default function HomePage() {
-  const { language } = useLanguage()
+  const { language, setLanguage } = useLanguage()
   const t = translations[language]
+  const router = useRouter()
+
+  const [dogName, setDogName] = useState('')
+  const [size, setSize] = useState<DogSize | null>(null)
+  const [breed, setBreed] = useState('')
+  const [nameFocused, setNameFocused] = useState(false)
+  const [breedFocused, setBreedFocused] = useState(false)
+
+  const isValid = dogName.trim().length > 0 && size !== null
+
+  const handleBook = () => {
+    if (!isValid) return
+    const params = new URLSearchParams({
+      dogName: dogName.trim(),
+      size: size as DogSize,
+      ...(breed.trim() ? { breed: breed.trim() } : {}),
+    })
+    router.push(`/book?${params.toString()}`)
+  }
+
+  const nameActive = nameFocused || dogName.length > 0
+  const breedActive = breedFocused || breed.length > 0
 
   return (
-    <div>
-      <div className="flex-1 overflow-y-auto no-scrollbar">
-        {/* Greeting */}
-        <div className="px-5 pt-1">
-          <p className="text-[13px] text-text-muted font-semibold">
-            Tuscany, NW Calgary
+    <div className="page-full-bleed relative">
+      {/* Main two-column layout */}
+      <div className="relative max-w-6xl mx-auto px-8 lg:px-16 lg:pt-13 pb-20 grid grid-cols-1 lg:grid-cols-2 lg:gap-16 items-center">
+        {/* Left column — pitch */}
+        <div className="my-2">
+          <p className="text-[11px] font-bold tracking-[0.09em] uppercase text-brand mb-5 flex items-center gap-2 hidden md:block">
+            <span className="w-[14px] h-px bg-brand inline-block" />
+            One dog at a time
           </p>
-          <h2 className="font-nunito font-extrabold text-xl text-text-primary mt-0.5">
-            {language === 'en' ? 'Private grooming in for a calmer experience' : '더 편안한 경험을 위한 프라이빗 그루밍'}
-          </h2>
+
+          <h1
+            className="font-extrabold text-text-primary leading-[1.1] mb-6"
+            style={{
+              fontFamily: 'var(--font-fraunces, serif)',
+              fontSize: 'clamp(34px, 4.6vw, 52px)',
+            }}
+          >
+            {language === 'en' ? (
+              <>A calmer, more <span className="text-brand italic font-medium">private</span> way to get groomed.</>
+            ) : (
+              <>더 <span className="text-brand italic font-medium">편안한</span>, 프라이빗한 그루밍 경험.</>
+            )}
+          </h1>
+
+          <p className="text-[15px] text-text-muted leading-relaxed mb-7 max-w-md hidden md:block">
+            {language === 'en'
+              ? 'Just your dog, a quiet room, and undivided attention from start to finish.'
+              : '조용한 공간에서 반려견에게 처음부터 끝까지 온전한 관심을 드립니다.'}
+          </p>
+
+          <div className="inline-flex items-center gap-1.5 bg-white px-4 py-2 rounded-full border border-black/[0.06] shadow-sm">
+            <i className="ti ti-map-pin text-[14px] text-brand" aria-hidden="true" />
+            <p className="text-[13px] text-brand font-bold">
+              Tuscany, NW Calgary
+            </p>
+          </div>
         </div>
 
-        {/* Hero banner */}
-        <div className="mx-5 mt-5 rounded-[20px] bg-gradient-to-r from-brand to-brand-light p-7 flex items-center justify-between">
-          <div>
-            <h3 className="font-nunito font-extrabold text-xl text-white leading-tight mb-4">
-              {language === 'en' 
-                ? 'Book your first\nsession today'
-                : '오늘 첫 세션을\n예약하세요'
-              }
-            </h3>
-            <Link
-              href="/book"
-              className="bg-white text-brand font-nunito font-bold text-[14px] px-4 py-3 rounded-full inline-block"
-            >
-              {t.home.bookNow}
-            </Link>
-          </div>
-          <div className="w-30 h-30 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-            <i className="ti ti-dog-bowl text-[50px] text-white" aria-hidden="true" />
-          </div>
-        </div>
-
-        {/* Trust badges */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
-        </div>
-        <div className="grid grid-cols-3 gap-2.5 px-5">
-          {TRUST.map(({ icon, labelKey }) => (
-            <div key={labelKey} className="bg-white rounded-[16px] p-3.5 text-center border border-border">
-              <i className={`ti ${icon} text-[24px] text-brand block mb-1.5`} aria-hidden="true" />
-              <p className="text-[11px] font-bold text-text-primary leading-tight">
+        {/* Right column — booking card */}
+        <div className="relative">
+          <div className="relative rounded-[24px] bg-white border border-black/[0.06] shadow-[0_20px_45px_-20px_rgba(0,0,0,0.18)] overflow-hidden max-w-md ml-auto">
+            <div className="p-8">
+              <h3
+                className="text-center font-bold text-[22px] text-text-primary mb-1"
+              >
                 {language === 'en'
-                  ? labelKey
-                  : labelKey === 'Korean Certified groomer'
-                  ? '한국 공인 그루머'
-                  : labelKey === 'Cage-free salon'
-                  ? '케이지 없는 살롱'
-                  : 'Google 5★'}
+                  ? 'Book your first session'
+                  : '오늘 첫 세션을 예약하세요'}
+              </h3>
+              <p className="text-center text-[13px] text-text-muted mb-7">
+                {language === 'en' ? 'Takes less than a minute' : '1분이면 충분해요'}
               </p>
-            </div>
-          ))}
-        </div>
 
-        <div className="h-5" />
+              <div className="space-y-5">
+                {/* Dog name */}
+                <div>
+                  <label
+                    htmlFor="dogName"
+                    className="block text-[11px] font-bold text-text-muted mb-2 tracking-wide uppercase"
+                  >
+                    {language === 'en' ? "Dog's name" : '반려견 이름'}
+                  </label>
+                  <input
+                    id="dogName"
+                    type="text"
+                    value={dogName}
+                    onFocus={() => setNameFocused(true)}
+                    onBlur={() => setNameFocused(false)}
+                    onChange={(e) => setDogName(e.target.value)}
+                    placeholder={language === 'en' ? 'e.g. Mochi' : '예: 모찌'}
+                    className="w-full rounded-[14px] border-[1.5px] border-black/[0.08] bg-surface-secondary px-4 py-3.5 text-[14px] font-medium text-text-primary outline-none transition-colors focus:border-brand focus:bg-white placeholder:text-black/30"
+                  />
+                </div>
+
+                {/* Dog size */}
+                <div>
+                  <p className="text-[11px] font-bold text-text-muted mb-2 tracking-wide uppercase">
+                    {language === 'en' ? 'Size' : '크기'}
+                  </p>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {DOG_SIZES.map((s) => {
+                      const selected = size === s.value
+                      return (
+                        <button
+                          key={s.value}
+                          type="button"
+                          onClick={() => setSize(s.value)}
+                          className={`flex flex-col items-center rounded-[14px] px-2 py-4 text-center border-[1.5px] transition-colors ${
+                            selected
+                              ? 'bg-brand border-brand'
+                              : 'bg-surface-secondary border-black/[0.08] hover:border-brand/40'
+                          }`}
+                        >
+                          <i
+                            className={`ti ti-paw text-[20px] mb-1.5 ${selected ? 'text-white' : 'text-text-primary/70'}`}
+                            aria-hidden="true"
+                          />
+                          <div className={`font-extrabold text-[16px] ${selected ? 'text-white' : 'text-text-primary'}`}
+                               style={{ fontFamily: 'var(--font-fraunces, serif)' }}>
+                            {s.label}
+                          </div>
+                          <div className={`text-[10px] font-medium leading-snug ${selected ? 'text-white/80' : 'text-text-muted'}`}>
+                            {s.lbs}<br />{s.kg}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Breed — optional */}
+                <div>
+                  <label
+                    htmlFor="breed"
+                    className="block text-[11px] font-bold text-text-muted mb-2 tracking-wide uppercase"
+                  >
+                    {language === 'en' ? 'Breed (optional)' : '견종 (선택)'}
+                  </label>
+                  <input
+                    id="breed"
+                    type="text"
+                    value={breed}
+                    onFocus={() => setBreedFocused(true)}
+                    onBlur={() => setBreedFocused(false)}
+                    onChange={(e) => setBreed(e.target.value)}
+                    placeholder={language === 'en' ? 'e.g. Golden retriever' : '예: 골든 리트리버'}
+                    className="w-full rounded-[14px] border-[1.5px] border-black/[0.08] bg-surface-secondary px-4 py-3.5 text-[14px] font-medium text-text-primary outline-none transition-colors focus:border-brand focus:bg-white placeholder:text-black/30"
+                  />
+                </div>
+
+                {/* Submit */}
+                <button
+                  type="button"
+                  onClick={handleBook}
+                  disabled={!isValid}
+                  className={`w-full font-bold text-[14px] tracking-wide px-4 py-4 rounded-full transition-all ${
+                    isValid
+                      ? 'bg-brand text-white shadow-[0_10px_24px_-10px_rgba(0,0,0,0.35)] hover:brightness-95 active:scale-[0.99]'
+                      : 'bg-[#EFE9DC] text-[#B3AC9C] cursor-not-allowed'
+                  }`}
+                >
+                  {t.home.bookNow}
+                </button>
+
+                <p className="text-center text-[11.5px] text-text-muted">
+                  {language === 'en'
+                    ? "We'll confirm your time by text within an hour"
+                    : '1시간 이내에 문자로 예약을 확정해 드려요'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

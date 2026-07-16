@@ -43,7 +43,6 @@ body {
 
 @media (min-width: 768px) {
   .app-shell {
-    width: 100%;
     max-width: 900px;
     min-height: 100vh;
     margin: auto;
@@ -54,4 +53,9 @@ body {
   .app-shell {
     max-width: 900px;
   }
+}
+
+.app-shell:has(.page-full-bleed) {
+  max-width: none;
+  overflow: visible;
 }
