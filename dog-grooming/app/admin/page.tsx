@@ -8,6 +8,7 @@ import { useServices } from '@/lib/hooks/useServices'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 const BOOKING_TABS = ['all', 'pending', 'confirmed', 'completed', 'cancelled', 'declined'] as const
+const serviceGridCls = 'grid grid-cols-[24px_minmax(90px,1fr)_minmax(90px,1fr)_minmax(140px,2fr)_minmax(140px,2fr)_56px_56px_56px_64px] gap-3'
 type BookingTab = typeof BOOKING_TABS[number]
 
 const STATUS_STYLES: Record<string, string> = {
@@ -43,22 +44,47 @@ const delBtnCls = 'w-7 h-7 flex items-center justify-center rounded-lg border bo
 
 // ─── Services panel ───────────────────────────────────────────────────────────
 
-function ServiceRow({ service, onSave, onDelete }: { service: DBService; onSave: (s: DBService) => void; onDelete: (id: number) => void }) {
+function ServiceRow({
+  service,
+  onSave,
+  onDelete,
+  index,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  isDragging,
+  isDragOver,
+}: {
+  service: DBService
+  onSave: (s: DBService) => void
+  onDelete: (id: number) => void
+  index: number
+  onDragStart: (index: number) => void
+  onDragOver: (index: number) => void
+  onDrop: () => void
+  onDragEnd: () => void
+  isDragging: boolean
+  isDragOver: boolean
+}) {
   const [editing, setEditing] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  // ServiceRow
-const [draft, setDraft] = useState<DBService>({
-  ...service,
-  name_eng:  service.name_eng  ?? '',
-  name_kor:  service.name_kor  ?? '',
-  icon:      service.icon      ?? '',
-  price:     service.price     ?? 0,
-  duration:  service.duration  ?? 30,
-  slots:     service.slots     ?? 1,
-})
+  const [draft, setDraft] = useState<DBService>({
+    ...service,
+    name_eng: service.name_eng ?? '',
+    name_kor: service.name_kor ?? '',
+    desc_eng: service.desc_eng ?? '',
+    desc_kor: service.desc_kor ?? '',
+    icon: service.icon ?? '',
+    sm_price: service.sm_price ?? 0,
+    md_price: service.md_price ?? 0,
+    lg_price: service.lg_price ?? 0,
+    duration: service.duration ?? 180,
+    slots: service.slots ?? 3,
+  })
 
-async function handleSave() {
+  async function handleSave() {
     setSaving(true)
     setSaveError(null)
     try {
@@ -66,11 +92,15 @@ async function handleSave() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id:          draft.id,
-          name_eng:    draft.name_eng,
-          name_kor:    draft.name_kor,
-          price:       draft.price,
-          duration:    draft.duration,
+          id: draft.id,
+          name_eng: draft.name_eng,
+          name_kor: draft.name_kor,
+          sm_price: draft.sm_price,
+          md_price: draft.md_price,
+          lg_price: draft.lg_price,
+          duration: draft.duration,
+          desc_eng: draft.desc_eng,
+          desc_kor: draft.desc_kor,
         }),
       })
 
@@ -93,22 +123,22 @@ async function handleSave() {
     setEditing(false)
   }
 
-    if (editing) {
+  const gridCls = serviceGridCls 
+
+  if (editing) {
     return (
-      <div className="grid grid-cols-[1fr_1fr_80px_80px_64px] gap-3 items-start px-4 py-3 bg-gray-50 border-b border-border">
-        <div className="flex flex-col gap-1.5">
-          <input autoFocus value={draft.name_eng} onChange={e => setDraft(d => ({ ...d, name_eng: e.target.value }))} placeholder="Name (English)" className={`${inputCls} font-bold`} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <input value={draft.name_kor} onChange={e => setDraft(d => ({ ...d, name_kor: e.target.value }))} placeholder="Name (Korean)" className={`${inputCls} font-bold`} />
-        </div>
-        <input type="number" min={0} value={draft.price} onChange={e => setDraft(d => ({ ...d, price: parseFloat(e.target.value) || 0 }))} className={`${inputCls} font-bold`} />
-        <input type="number" min={5} step={5} value={draft.duration} onChange={e => setDraft(d => ({ ...d, duration: parseInt(e.target.value) || 30 }))} className={inputCls} />
-        <div className="flex flex-col  pt-0.5">
+      <div className={`${gridCls} items-start px-4 py-3 bg-gray-50 border-b border-border`}>
+        <div />
+        <input autoFocus value={draft.name_eng} onChange={e => setDraft(d => ({ ...d, name_eng: e.target.value }))} placeholder="Name (English)" className={`${inputCls} font-bold`} />
+        <input value={draft.name_kor} onChange={e => setDraft(d => ({ ...d, name_kor: e.target.value }))} placeholder="Name (Korean)" className={`${inputCls} font-bold`} />
+        <input autoFocus value={draft.desc_eng} onChange={e => setDraft(d => ({ ...d, desc_eng: e.target.value }))} placeholder="Description (English)" className={`${inputCls} font-bold`} />
+        <input value={draft.desc_kor} onChange={e => setDraft(d => ({ ...d, desc_kor: e.target.value }))} placeholder="Description (Korean)" className={`${inputCls} font-bold`} />
+        <input type="number" min={0} value={draft.sm_price} onChange={e => setDraft(d => ({ ...d, sm_price: parseFloat(e.target.value) || 0 }))} className={`${inputCls} font-bold`} />
+        <input type="number" min={0} value={draft.md_price} onChange={e => setDraft(d => ({ ...d, md_price: parseFloat(e.target.value) || 0 }))} className={`${inputCls} font-bold`} />
+        <input type="number" min={0} value={draft.lg_price} onChange={e => setDraft(d => ({ ...d, lg_price: parseFloat(e.target.value) || 0 }))} className={`${inputCls} font-bold`} />
+        <div className="flex flex-col pt-0.5">
           <div className="flex items-center">
-            <button onClick={handleSave} disabled={saving} className={`${saveBtnCls} disabled:opacity-50`}>
-              💾
-            </button>
+            <button onClick={handleSave} disabled={saving} className={`${saveBtnCls} disabled:opacity-50`}>💾</button>
             <button onClick={handleCancel} disabled={saving} className={cancelBtnCls} aria-label="cancel">✕</button>
           </div>
           {saveError && <p className="text-[10px] text-red-500">{saveError}</p>}
@@ -118,47 +148,59 @@ async function handleSave() {
   }
 
   return (
-    // View mode — each column is its own cell now
-    <div className="grid grid-cols-[1fr_1fr_80px_80px_64px] gap-3 items-center px-4 py-3 border-b border-border hover:bg-gray-50 transition-colors">
-      <div>
-        <p className="text-sm font-bold font-nunito text-text-primary">{service.name_eng}</p>
-      </div>
-      <div>
-        <p className="text-sm font-bold font-nunito text-text-primary">{service.name_kor}</p>
-      </div>
-      <p className="text-sm font-bold font-nunito text-text-primary">${service.price}</p>
-      <p className="text-sm text-text-muted">{service.duration} min</p>
-      <div className="flex items-center gap-1">
-        <button onClick={() => setEditing(true)} className={iconBtnCls}><i className="ti ti-edit text-sm" /></button>
-        <button onClick={() => onDelete(service.id)} className={delBtnCls}><i className="ti ti-trash text-sm" /></button>
-      </div>
+  <div
+    draggable
+    onDragStart={() => onDragStart(index)}
+    onDragOver={(e) => { e.preventDefault(); onDragOver(index) }}
+    onDrop={(e) => { e.preventDefault(); onDrop() }}
+    onDragEnd={onDragEnd}
+    className={`${gridCls} items-center px-4 py-3 border-b border-border transition-colors ${
+      isDragging ? 'opacity-40' : 'hover:bg-gray-50'
+    } ${isDragOver ? 'border-t-2 border-t-brand' : ''}`}
+  >
+    <div className="w-6 h-8 flex items-center justify-center text-text-muted cursor-grab active:cursor-grabbing" aria-label="Drag to reorder">
+      <i className="ti ti-grip-vertical text-sm" />
     </div>
-  )
+    <p className="text-sm font-bold font-nunito text-text-primary truncate">{service.name_eng}</p>
+    <p className="text-sm font-bold font-nunito text-text-primary truncate">{service.name_kor}</p>
+    <p className="text-xs text-text-muted line-clamp-2 leading-snug">{service.desc_eng}</p>
+    <p className="text-xs text-text-muted line-clamp-2 leading-snug">{service.desc_kor}</p>
+    <p className="text-sm font-bold font-nunito text-text-primary">${service.sm_price}</p>
+    <p className="text-sm font-bold font-nunito text-text-primary">${service.md_price}</p>
+    <p className="text-sm font-bold font-nunito text-text-primary">${service.lg_price}</p>
+    <div className="flex items-center gap-1">
+      <button onClick={() => setEditing(true)} className={iconBtnCls}><i className="ti ti-edit text-sm" /></button>
+      <button onClick={() => onDelete(service.id)} className={delBtnCls}><i className="ti ti-trash text-sm" /></button>
+    </div>
+  </div>
+)
 }
 
-function NewServiceRow({ onAdd, onCancel }: { onAdd: (s: Omit<DBService, 'id'>) => void; onCancel: () => void }) {
+function NewServiceRow({ onAdd, onCancel }: { onAdd: (s: Omit<DBService, 'id' | 'order'>) => void; onCancel: () => void }) {
   const [draft, setDraft] = useState<Omit<DBService, 'id'>>({
-  name_eng:    '',
-  name_kor:    '',
-  icon:        '',
-  price:       0,
-  duration:    30,
-  slots:       1,
-  needs_style: false,
-})
-
+    name_eng: '',
+    name_kor: '',
+    desc_eng: '',
+    desc_kor: '',
+    icon: '',
+    sm_price: 0,
+    md_price: 0,
+    lg_price: 0,
+    duration: 180,
+    slots: 3,
+    needs_style: false,
+    order: 0
+  })
   return (
-    <div className="grid grid-cols-[1fr_1fr_80px_80px_64px] gap-2 items-center px-4 py-3 bg-gray-50 border-t border-border">
-      <div className="flex flex-col gap-1.5">
-        <input autoFocus value={draft.name_eng} onChange={e => setDraft(d => ({ ...d, name_eng: e.target.value }))} placeholder="Service name (English)" className={`${inputCls} font-bold`} />
-        <input value={draft.name_kor} onChange={e => setDraft(d => ({ ...d, name_kor: e.target.value }))} placeholder="Service name (Korean)" className={`${inputCls} font-bold`} />
-      </div>
-      <input type="number" min={0} value={draft.price} onChange={e => setDraft(d => ({ ...d, price: parseFloat(e.target.value) || 0 }))} placeholder="$0" className={`${inputCls} font-bold`} />
-      <input type="number" min={5} step={5} value={draft.duration} onChange={e => setDraft(d => ({ ...d, duration: parseInt(e.target.value) || 30 }))} placeholder="min" className={inputCls} />
-      {/* <select value={draft.status} onChange={e => setDraft(d => ({ ...d, status: e.target.value as ActiveStatus }))} className={selectCls}>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-      </select> */}
+    <div className={`${serviceGridCls} items-center px-4 py-3 bg-gray-50 border-t border-border`}>
+      <div />
+      <input autoFocus value={draft.name_eng} onChange={e => setDraft(d => ({ ...d, name_eng: e.target.value }))} placeholder="Service name (English)" className={`${inputCls} font-bold`} />
+      <input value={draft.name_kor} onChange={e => setDraft(d => ({ ...d, name_kor: e.target.value }))} placeholder="Service name (Korean)" className={`${inputCls} font-bold`} />
+      <input value={draft.desc_eng} onChange={e => setDraft(d => ({ ...d, desc_eng: e.target.value }))} placeholder="Description (English)" className={`${inputCls} font-bold`} />
+      <input value={draft.desc_kor} onChange={e => setDraft(d => ({ ...d, desc_kor: e.target.value }))} placeholder="Description (Korean)" className={`${inputCls} font-bold`} />
+      <input type="number" min={0} value={draft.sm_price} onChange={e => setDraft(d => ({ ...d, sm_price: parseFloat(e.target.value) || 0 }))} placeholder="$0" className={`${inputCls} font-bold`} />
+      <input type="number" min={0} value={draft.md_price} onChange={e => setDraft(d => ({ ...d, md_price: parseFloat(e.target.value) || 0 }))} placeholder="$0" className={`${inputCls} font-bold`} />
+      <input type="number" min={0} value={draft.lg_price} onChange={e => setDraft(d => ({ ...d, lg_price: parseFloat(e.target.value) || 0 }))} placeholder="$0" className={`${inputCls} font-bold`} />
       <div className="flex items-center gap-1">
         <button onClick={() => { if (draft.name_eng.trim()) onAdd(draft) }} className={saveBtnCls}>Add</button>
         <button onClick={onCancel} className={cancelBtnCls} aria-label="cancel">✕</button>
@@ -171,61 +213,140 @@ function ServicesTable() {
   const [services, setServices] = useState<DBService[]>([])
   const [loading, setLoading] = useState(true)
   const [addingNew, setAddingNew] = useState(false)
-  const [nextId, setNextId] = useState(100)
+  const [reordering, setReordering] = useState(false)
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
   useEffect(() => {
     async function fetchServices() {
       setLoading(true)
       const res = await fetch('/api/services')
       const json = await res.json()
-      setServices(json.services.map((d: any, i: number) => ({
-        id: d.id,
-        name_eng: d.name_eng,
-        name_kor: d.name_kor,
-        desc_eng: d.desc_eng,
-        desc_kor: d.desc_kor,
-        price: d.price,
-        duration: d.duration,
-        icon: d.icon,
-        needs_style: d.needs_style,
-      })))
+      setServices(
+        json.services
+          .map((d: any) => ({
+            id: d.id,
+            name_eng: d.name_eng,
+            name_kor: d.name_kor,
+            desc_eng: d.desc_eng,
+            desc_kor: d.desc_kor,
+            sm_price: d.sm_price,
+            md_price: d.md_price,
+            lg_price: d.lg_price,
+            duration: d.duration,
+            icon: d.icon,
+            needs_style: d.needs_style,
+            order: d.order ?? 0,
+          }))
+          .sort((a: DBService, b: DBService) => a.order - b.order)
+      )
       setLoading(false)
     }
     fetchServices()
-
   }, [])
 
   function handleSave(updated: DBService) {
     setServices(prev => prev.map(s => s.id === updated.id ? updated : s))
-    // TODO: fetch(`/api/admin/services/${updated.id}`, { method: 'PATCH', body: JSON.stringify(updated) })
   }
 
-  function handleDelete(id: number) {
+  async function handleDelete(id: number) {
     setServices(prev => prev.filter(s => s.id !== id))
-    // TODO: fetch(`/api/admin/services/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/admin/services?id=${id}`, { method: 'DELETE' })
+    if (!res.ok) console.error('Failed to delete service')
   }
 
-  function handleAdd(data: Omit<DBService, 'id'>) {
-    setServices(prev => [...prev, { id: nextId, ...data }])
-    setNextId(n => n + 1)
+  async function handleAdd(data: Omit<DBService, 'id' | 'order'>) {
+    const res = await fetch('/api/admin/services', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+
+    if (!res.ok) {
+      console.error('Failed to add service')
+      return
+    }
+
+    const { service } = await res.json()
+    setServices(prev => [...prev, service])
     setAddingNew(false)
-    // TODO: fetch('/api/admin/services', { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  async function persistOrder(reordered: DBService[]) {
+    setReordering(true)
+    try {
+      await fetch('/api/admin/services/reorder', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order: reordered.map((s, i) => ({ id: s.id, order: i })),
+        }),
+      })
+    } catch (err) {
+      console.error('Failed to save order:', err)
+    } finally {
+      setReordering(false)
+    }
+  }
+
+  function handleDragStart(index: number) {
+    setDragIndex(index)
+  }
+
+  function handleDragOver(index: number) {
+    if (index !== dragOverIndex) setDragOverIndex(index)
+  }
+
+  function handleDrop() {
+    if (dragIndex === null || dragOverIndex === null || dragIndex === dragOverIndex) {
+      setDragIndex(null)
+      setDragOverIndex(null)
+      return
+    }
+
+    const reordered = [...services]
+    const [moved] = reordered.splice(dragIndex, 1)
+    reordered.splice(dragOverIndex, 0, moved)
+
+    const withUpdatedOrder = reordered.map((s, i) => ({ ...s, order: i }))
+
+    setServices(withUpdatedOrder)
+    persistOrder(withUpdatedOrder)
+    setDragIndex(null)
+    setDragOverIndex(null)
+  }
+
+  function handleDragEnd() {
+    setDragIndex(null)
+    setDragOverIndex(null)
   }
 
   if (loading) return <div className="p-8 text-sm text-text-muted">Loading…</div>
 
   return (
     <div className="bg-white rounded-2xl border border-border overflow-hidden">
-    <div className="grid grid-cols-[1fr_1fr_80px_80px_64px] gap-3 px-4 py-2.5 border-b border-border">
-      {['Name (English)', 'Name (Korean)', 'Price', 'Duration', ''].map(h => (
-        <span key={h} className="text-[10px] font-bold font-nunito text-text-muted uppercase tracking-wide">{h}</span>
-      ))}
-    </div>
+      <div className={`${serviceGridCls} px-4 py-2.5 border-b border-border`}>
+        {['', 'Name (English)', 'Name (Korean)', 'Desc (English)', 'Desc (Korean)', 'S', 'M', 'L', ''].map((h, i) => (
+          <span key={i} className="text-[10px] font-bold font-nunito text-text-muted uppercase tracking-wide">{h}</span>
+        ))}
+      </div>
       {services.length === 0 && !addingNew && (
         <p className="text-center text-sm text-text-muted py-10">No services yet</p>
       )}
-      {services.map(s => (
-        <ServiceRow key={s.id} service={s} onSave={handleSave} onDelete={handleDelete} />
+      {services.map((s, i) => (
+        <ServiceRow
+          key={s.id}
+          service={s}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          index={i}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onDragEnd={handleDragEnd}
+          isDragging={dragIndex === i}
+          isDragOver={dragOverIndex === i && dragIndex !== i}
+        />
       ))}
       {addingNew && <NewServiceRow onAdd={handleAdd} onCancel={() => setAddingNew(false)} />}
       {!addingNew && (
@@ -502,7 +623,7 @@ function CatalogPanel() {
     <div>
       {/* Sub-tab switcher */}
       <div className="flex items-center gap-1 mb-4 border-b border-border">
-        {(['services', 'styles'] as CatalogTab[]).map(t => (
+        {(['services'] as CatalogTab[]).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -720,7 +841,7 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
                 view === 'services' ? 'bg-white text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'
               }`}
             >
-              Services & styles
+              Services
             </button>
           </div>
         </div>

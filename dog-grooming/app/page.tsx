@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/components/LanguageContext'
 import { translations } from '@/lib/translations'
+import BreedAutoComplete from '@/components/ui/BreedAutoComplete'
 
 const DOG_SIZES = [
   { value: 'S', label: 'S', lbs: '0–25 lbs', kg: '0–11 kg' },
@@ -80,7 +81,7 @@ export default function HomePage() {
 
         {/* Right column — booking card */}
         <div className="relative">
-          <div className="relative rounded-[24px] bg-white border border-black/[0.06] shadow-[0_20px_45px_-20px_rgba(0,0,0,0.18)] overflow-hidden max-w-md ml-auto">
+          <div className="relative rounded-[24px] bg-white border border-black/[0.06] shadow-[0_20px_45px_-20px_rgba(0,0,0,0.18)] max-w-md ml-auto md:mx-auto sm:mx-auto">
             <div className="p-8">
               <h3
                 className="text-center font-bold text-[22px] text-text-primary mb-1"
@@ -109,7 +110,7 @@ export default function HomePage() {
                     onFocus={() => setNameFocused(true)}
                     onBlur={() => setNameFocused(false)}
                     onChange={(e) => setDogName(e.target.value)}
-                    placeholder={language === 'en' ? 'e.g. Mochi' : '예: 모찌'}
+                    placeholder={language === 'en' ? 'e.g. Curi' : '예: 큐리'}
                     className="w-full rounded-[14px] border-[1.5px] border-black/[0.08] bg-surface-secondary px-4 py-3.5 text-[14px] font-medium text-text-primary outline-none transition-colors focus:border-brand focus:bg-white placeholder:text-black/30"
                   />
                 </div>
@@ -151,24 +152,14 @@ export default function HomePage() {
                 </div>
 
                 {/* Breed — optional */}
-                <div>
-                  <label
-                    htmlFor="breed"
-                    className="block text-[11px] font-bold text-text-muted mb-2 tracking-wide uppercase"
-                  >
-                    {language === 'en' ? 'Breed (optional)' : '견종 (선택)'}
-                  </label>
-                  <input
-                    id="breed"
-                    type="text"
-                    value={breed}
-                    onFocus={() => setBreedFocused(true)}
-                    onBlur={() => setBreedFocused(false)}
-                    onChange={(e) => setBreed(e.target.value)}
-                    placeholder={language === 'en' ? 'e.g. Golden retriever' : '예: 골든 리트리버'}
-                    className="w-full rounded-[14px] border-[1.5px] border-black/[0.08] bg-surface-secondary px-4 py-3.5 text-[14px] font-medium text-text-primary outline-none transition-colors focus:border-brand focus:bg-white placeholder:text-black/30"
-                  />
-                </div>
+               
+                <BreedAutoComplete 
+                  breed={breed}
+                  onChange={(e) => setBreed(e.target.value)}
+                  t={t}
+                  variant='muted'
+                />
+               
 
                 {/* Submit */}
                 <button
@@ -183,12 +174,6 @@ export default function HomePage() {
                 >
                   {t.home.bookNow}
                 </button>
-
-                <p className="text-center text-[11.5px] text-text-muted">
-                  {language === 'en'
-                    ? "We'll confirm your time by text within an hour"
-                    : '1시간 이내에 문자로 예약을 확정해 드려요'}
-                </p>
               </div>
             </div>
           </div>

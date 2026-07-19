@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   try {
     const {
       service,
-      email,
+      // email,
       phone,
       dog_name,
       date,
@@ -36,8 +36,7 @@ export async function POST(req: Request) {
       subject: `🐶 New Grooming Appointment Request - ${dog_name}`,
       html: `
         <h2>New Appointment Request</h2>
-
-        <p><strong>Email:</strong> ${email ?? 'N/A'}</p>
+        
         <p><strong>Phone:</strong> ${phone ?? 'N/A'}</p>
 
         <hr />

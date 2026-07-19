@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/components/LanguageContext'
@@ -11,9 +11,10 @@ import { useStyles } from '@/lib/hooks/useStyles'
 import { useEffect } from 'react'
 import { DOG_BREEDS } from '@/lib/data'
 import { supabase } from '@/utils/supabase/client'
+import { useSearchParams } from 'next/dist/client/components/navigation'
+import BreedAutoComplete from '@/components/ui/BreedAutoComplete'
 
 type Step = 1 | 2 | 3 | 4
-
 // ─── Step indicator ──────────────────────────────────────────────────────────
 function StepIndicator({ current, total }: { current: Step; total: number }) {
   return (
@@ -49,38 +50,23 @@ function ServiceStep({
   onSelect,
   language,
   t,
+  services
 }: {
   selectedServiceId: number | null
   onSelect: (s: Service) => void
   language: string
   t: any
+  services: Service[]
 }) {
-  const { services, loading, error  } = useServices(language)
 
   const selected = services.find((s) => s.id === selectedServiceId) ?? null
-
-  if (loading) {
-    return (
-      <div className="px-5 pt-3.5 space-y-2.5">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-[76px] rounded-[16px] bg-surface-secondary animate-pulse" />
-        ))}
-      </div>
-    )
-  }
-
-    if (error) {
-    return (
-      <p className="px-5 pt-3.5 text-[14px] text-red-500">{error}</p>
-    )
-  }
 
   return (
     <div>
       <p className="px-5 pt-1 font-nunito font-bold text-[15px] text-text-primary">
         {t.booking.chooseService}
       </p>
-      {services.map((svc) => {
+      {services.sort((a, b) => a.order - b.order).map((svc) => {
         const active = selected?.id === svc.id
         return (
           <button
@@ -96,7 +82,7 @@ function ServiceStep({
             </div>
             <div className="flex-1 text-left">
               <p className="font-nunito font-bold text-[14px] text-text-primary">{svc.name}</p>
-              <p className="text-[12px] text-text-muted mt-0.5">{svc.duration} {t.services.minute}</p>
+              <p className="text-[12px] text-text-muted mt-0.5">{svc.description}</p>
             </div>
             <p className="font-nunito font-extrabold text-[16px] text-brand">${svc.price}</p>
             <i
@@ -555,40 +541,15 @@ function ConfirmStep({
   )}
 </div>
 
-      <div className="px-5 mt-3 relative">
-        <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
-          {t.booking.dogBreed}
-        </label>
-        <input
-          type="text"
-          placeholder={t.booking.searchBreed}
-          value={breedQuery}
-          onChange={(e) => {
-            setBreedQuery(e.target.value)
-            onChange({ breed: e.target.value })
-          }}
-          className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
-        />
-        {breedQuery.length > 0 && filteredBreeds.length > 0 && (
-          <div className="absolute left-5 right-5 mt-1 bg-white border border-border rounded-[14px] shadow-lg overflow-hidden z-20">
-            {filteredBreeds.map((breed) => (
-              <button
-                key={breed}
-                type="button"
-                onClick={() => {
-                  setBreedQuery(breed)
-                  onChange({ breed })
-                }}
-                className="w-full text-left px-4 py-3 text-[14px] font-medium text-text-primary hover:bg-surface-secondary transition-colors"
-              >
-                {breed}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+    <div className="px-5 mt-3 relative">
+     <BreedAutoComplete 
+      breed={draft.breed}
+      onChange={(e) => onChange({ breed: e.target.value })}
+      t={t}
+     />
+     </div>
 
-      <div className="px-5 mt-3">
+      {/* <div className="px-5 mt-3">
         <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
           {t.booking.email}
         </label>
@@ -599,7 +560,7 @@ function ConfirmStep({
           onChange={(e) => onChange({ email: e.target.value })}
           className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
         />
-      </div>
+      </div> */}
 
       <div className="px-5 mt-3">
         <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
@@ -697,22 +658,22 @@ function ConfirmationPage({
         </div>
       </div>
       
-      {!session?.user && (
+      {/* {!session?.user && ( */}
       <div className="w-full space-y-3">
-        <button
+        {/* <button
           onClick={onCreateAccount}
           className="w-full bg-brand text-white font-nunito font-bold text-base rounded-full py-4 transition-opacity active:opacity-80"
         >
           {t.booking.createAccount}
-        </button>
+        </button> */}
         <Link
           href="/"
           className="w-full bg-white text-brand font-nunito font-bold text-base rounded-full py-4 border-2 border-brand flex items-center justify-center transition-opacity active:opacity-80"
         >
-          {t.booking.continueAsGuest}
+          {t.booking.continue}
         </Link>
       </div>
-        )}
+        {/* )} */}
     </div>
   )
 }
@@ -843,10 +804,22 @@ const handleCreateAccount = async () => {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function BookPage() {
+  return (
+    <Suspense fallback={null}>
+      <BookPageContent />
+    </Suspense>
+  )
+}
+
+function BookPageContent() {
+  const searchParams = useSearchParams()
+  const dogSizeParam = searchParams.get('size')
+  const dogNameParam = searchParams.get('dogName')
+  const breedParam = searchParams.get('breed') // optional
+
   const { language } = useLanguage()
   const t = translations[language]
   const { styles } = useStyles(language, t)
-  const { services } = useServices(language)
   const [step, setStep] = useState<Step>(1)
   const [isConfirmed, setIsConfirmed] = useState(false)
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
@@ -858,14 +831,16 @@ export default function BookPage() {
     time: null,
     styleId: null,
     photoUrls: [],
-    dogName: '',
+    dogName: dogNameParam ?? '',
     email: '',
     phone: '',
     notes: '',
-    breed: null,
+    breed: breedParam ?? null,
     bookingId: null,
-    user_id: null
+    user_id: null,
+    dogSize: dogSizeParam
   })
+  const { services } = useServices(language, draft.dogSize)
 useEffect(() => {
   async function loadUserData() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -910,7 +885,7 @@ function handleServiceSelect(service: Service) {
   (step === 3 && draft.styleId !== null) ||
   (step === 4 &&
     !!draft.dogName &&
-    !!draft.email &&
+    // !!draft.email &&
     !!draft.phone)
 
 const [isSubmitting, setIsSubmitting] = useState(false)
@@ -964,11 +939,6 @@ const user = session?.user
       })
 
       const json = await res.json()
-      setDraft((prev) => ({
-        ...prev,
-        bookingId: json.booking.id,
-      }))
-
       if (res.status === 409) {
         // slot was taken between selecting and confirming
         setSubmitError(json.error)
@@ -981,21 +951,27 @@ const user = session?.user
         return
       }
 
+      // setDraft((prev) => ({
+      //   ...prev,
+      //   bookingId: json.booking.id,
+      // }))
+
+
       // upload photos AFTER booking succeeds
-      if (photoFiles.length > 0) {
-        const formData = new FormData()
+      // if (photoFiles.length > 0) {
+      //   const formData = new FormData()
 
-        formData.append('bookingId', json.booking.id)
+      //   formData.append('bookingId', json.booking.id)
 
-        photoFiles.forEach((file) => {
-          formData.append('files', file)
-        })
+      //   photoFiles.forEach((file) => {
+      //     formData.append('files', file)
+      //   })
 
-        await fetch('/api/photos', {
-          method: 'POST',
-          body: formData,
-        })
-      }
+      //   await fetch('/api/photos', {
+      //     method: 'POST',
+      //     body: formData,
+      //   })
+      // }
 
       await fetch('/api/admin/notifyAdmin', {
       method: 'POST',
@@ -1035,8 +1011,8 @@ if (user) {
       return
     }
 
-    // Keep local state in sync so it shows up if they book again in the same session
-    setUserDogs((prev) => [...prev, { name: draft.dogName, breed: draft.breed ?? '' }])
+    // // Keep local state in sync so it shows up if they book again in the same session
+    // setUserDogs((prev) => [...prev, { name: draft.dogName, breed: draft.breed ?? '' }])
   }
 }
     setIsConfirmed(true)
@@ -1141,6 +1117,7 @@ useEffect(() => {
             onSelect={(s) => handleServiceSelect(s)}
             language={language}
             t={t}
+            services={services}
           />
         )}
         {step === 2 && (

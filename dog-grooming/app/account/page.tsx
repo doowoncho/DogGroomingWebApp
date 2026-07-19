@@ -97,8 +97,10 @@ export default function AccountPage() {
           </div>
         </div>
 
+
+        <h1>Contact Doowon for admin account setup</h1>
         {/* Menu */}
-        <div className="px-10">
+        {/* <div className="px-10">
           {MENU_ITEMS.map(({ icon, label, href }) => (
             <Link
               key={href}
@@ -112,7 +114,7 @@ export default function AccountPage() {
               <i className="ti ti-chevron-right text-[16px] text-text-muted" />
             </Link>
           ))}
-        </div>
+        </div> */}
 
         {/* Sign out */}
         <div className="px-5 pt-6">

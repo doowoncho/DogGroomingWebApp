@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
-
+  
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
@@ -15,27 +15,27 @@ export async function updateSession(request: NextRequest) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
+        )
+        supabaseResponse = NextResponse.next({ request })
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options)
+      )
+    },
+  },
+}
+)
 
-  const { data: { user } } = await supabase.auth.getUser()
+const { data: { user } } = await supabase.auth.getUser()
 
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    if (!user) {
-      return redirectWithCookies(request, supabaseResponse, '/login')
-    }
+if (request.nextUrl.pathname.startsWith('/admin')) {
+  if (!user) {
+    return redirectWithCookies(request, supabaseResponse, '/login')
+  }
 
-    const { data: profile } = await supabase
+    const { data: profile  } = await supabase
       .from('profiles')
       .select('is_admin')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (!profile?.is_admin) {

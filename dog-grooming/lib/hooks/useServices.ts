@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { Service } from '@/types'
 
-export function useServices(language: string) {
+export function useServices(language: string, size?: string | null) {
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -17,6 +17,14 @@ export function useServices(language: string) {
           name: language === 'ko'
             ? svc.name_kor
             : svc.name_eng,
+          description: language === 'ko'
+            ? svc.desc_kor
+            : svc.desc_eng,
+          price:
+            size === 'S' ? svc.sm_price :
+            size === 'M' ? svc.md_price :
+            size === 'L' ? svc.lg_price :
+            null
         }))
 
         setServices(merged)
@@ -28,7 +36,7 @@ export function useServices(language: string) {
     }
 
     fetchServices()
-  }, [language])
+  }, [language, size])
 
   // id → service lookup
   const serviceMap = useMemo(

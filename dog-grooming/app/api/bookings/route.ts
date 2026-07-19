@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   }
 
   // Basic validation
-  const required = ['service_id', 'date', 'time', 'dog_name', 'email', 'phone']
+  const required = ['service_id', 'date', 'time', 'dog_name', 'phone']
   for (const field of required) {
     if (!body[field]) {
       return NextResponse.json({ error: `${field} is required` }, { status: 400 })
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       style_id:      body.style_id ?? null,
       dog_name:      body.dog_name,
       breed:         body.breed ?? null,
-      email:         body.email,
+      email:         body.email ?? null,
       phone:         body.phone,
       notes:         body.notes || null,
       user_id: user?.id ?? null,  // ✅ server-controlled

@@ -5,20 +5,27 @@ export interface DBService {
   name_eng: string
   name_kor: string
   duration: number
-  price: number
+  desc_eng: string
+  desc_kor: string
+  sm_price: number
+  md_price: number
+  lg_price: number
   icon: string
   slots: number
   needs_style: boolean
+  order: number
 }
 
 export interface Service {
   id: number
   name: string
+  description: string
   duration: number
   price: number
   icon: string
   slots: number
   needs_style: boolean
+  order: number
 }
 
 type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'declined'
@@ -63,6 +70,7 @@ export interface BookingDraft {
   breed: string | null
   bookingId?: string | null
   user_id?: string | null
+  dogSize?: string | null
 }
 
 export interface Booking {

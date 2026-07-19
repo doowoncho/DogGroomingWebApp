@@ -33,7 +33,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/account')
+    router.push('/admin')
 }
 
 async function handleSignup() {
