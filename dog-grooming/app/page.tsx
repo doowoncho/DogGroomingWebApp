@@ -84,8 +84,9 @@ export default function HomePage() {
 
           */}
         {/* Right column — booking card */}
+
         <div className="relative">
-          <div className="relative rounded-[24px] bg-white border border-black/[0.06] shadow-[0_20px_45px_-20px_rgba(0,0,0,0.18)] max-w-md ml-auto md:mx-auto sm:mx-auto">
+          <div className="relative rounded-[24px] bg-white border border-black/[0.06] shadow-[0_20px_45px_-20px_rgba(0,0,0,0.18)] min-h-[580px] max-w-[500px] mx-auto">
             <div className="p-8">
               <h3
                 className="text-center font-bold text-[22px] text-text-primary mb-1"
