@@ -43,7 +43,7 @@ export default function RootLayout({
         className={`${nunito.variable} ${nunitoSans.variable} font-nunito-sans bg-surface antialiased`}
       >
         <LanguageProvider>
-          <div className="app-shell flex flex-col h-dvh">
+          <div className="flex flex-col h-dvh">
             <TopBar />
 
             <div className="flex-1 overflow-y-auto no-scrollbar">

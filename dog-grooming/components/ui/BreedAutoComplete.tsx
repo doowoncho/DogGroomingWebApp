@@ -1,7 +1,17 @@
 import { DOG_BREEDS } from "@/lib/data"
 import { useState } from "react"
 
-export default function BreedAutoComplete({breed, t, onChange, variant='default'}: {breed: string|null, t:any, onChange: (event: React.ChangeEvent<HTMLInputElement>) => void, variant?: 'default' | 'muted';}) {
+export default function BreedAutoComplete({
+  breed,
+  t,
+  onChange,
+  variant='default'
+}: {
+  breed: string|null,
+  t:any,
+  onChange: (breed: string) => void,
+  variant?: 'default' | 'muted';
+}) {
  const [breedQuery, setBreedQuery] = useState(breed ?? '')
     const styles = {
         default: "bg-white ",
@@ -11,21 +21,21 @@ export default function BreedAutoComplete({breed, t, onChange, variant='default'
 const filteredBreeds = DOG_BREEDS.filter((breed) =>
     breed.toLowerCase().includes(breedQuery.toLowerCase()),
 )
-    .filter((breed) => breed !== breedQuery)
+    .filter((breed) => breed.toLowerCase() !== breedQuery.toLowerCase())
     .slice(0, 6)
 
   return (
      <div>
         <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
-          {t.booking.dogBreed}(optional)
+          {t.booking.dogBreed}
         </label>
-        <input
+       <input
           type="text"
           placeholder={t.booking.searchBreed}
           value={breedQuery}
           onChange={(e) => {
             setBreedQuery(e.target.value)
-            onChange(e)
+            onChange(e.target.value)
           }}
           className={`${styles[variant]} focus:bg-white w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary outline-none focus:border-brand`}
         />
@@ -37,6 +47,7 @@ const filteredBreeds = DOG_BREEDS.filter((breed) =>
                 type="button"
                 onClick={() => {
                   setBreedQuery(breed)
+                  onChange(breed)
                 }}
                 className="w-full text-left px-4 py-3 text-[14px] font-medium text-text-primary hover:bg-surface-secondary transition-colors"
               >

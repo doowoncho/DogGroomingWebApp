@@ -57,7 +57,10 @@ export const translations = {
       selectDog: 'Select a pet',
       addPet: 'Add a new pet',
       bookingConfirmed: 'Booking sent!',
-      bookingReceivedMessage: "We've received your booking. You'll hear from us soon.",
+      editRequest: 'Edit request',      // ko: '요청 수정'
+      saveChanges: 'Save changes',      // ko: '변경사항 저장'
+      cancel: 'Cancel',
+      bookingReceivedMessage: "We've received your booking request. You'll hear from us soon.",
       confirmationMessage: "We've received your booking request. A confirmation email will be sent shortly.",
       createAccount: 'Create account',
       continueAsGuest: 'Continue as guest',
@@ -152,7 +155,10 @@ export const translations = {
       selectDog: '반려견 선택',
       addPet: '새로운 반려견 추가',
       bookingConfirmed: '예약이 확정되었습니다!',
-      bookingReceivedMessage: '예약을 받았습니다. 곧 연락드리겠습니다.',
+      bookingReceivedMessage: '예약 요청이 접수되었습니다. 곧 다시 연락 드리겠습니다',
+      editRequest: '요청 수정',      
+      saveChanges: '변경사항 저장',      
+      cancel: '취소',                 
       confirmationMessage: '예약 요청을 받았습니다. 곧 확인 이메일이 발송됩니다.',
       createAccount: '계정 만들기',
       continueAsGuest: '비회원으로 계속',

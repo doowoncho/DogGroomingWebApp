@@ -535,6 +535,8 @@ function ConfirmStep({
     .filter((breed) => breed !== breedQuery)
     .slice(0, 6)
 
+
+    console.log(draft.breed)
   return (
     <div>
       <p className="px-5 pt-3.5 pb-1 font-nunito font-bold text-[15px] text-text-primary">
@@ -565,8 +567,9 @@ function ConfirmStep({
       </div>
 
      <div className="px-5 mt-4 relative">
-  <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
+  <label className="block text-[12px] font-bold text-text-primary uppercase tracking-wide mb-1.5">
     {t.booking.dogName}
+  <span className='text-[8px] mx-2'>*Required</span>
   </label>
   <input
     type="text"
@@ -590,7 +593,7 @@ function ConfirmStep({
             onChange({ dogName: dog.name, breed: dog.breed ?? '' })
           }}
           className="w-full text-left px-4 py-3 text-[14px] font-medium text-text-primary hover:bg-surface-secondary transition-colors flex items-center justify-between"
-        >
+          >
           <span>{dog.name}</span>
           {dog.breed && (
             <span className="text-[12px] text-text-muted">{dog.breed}</span>
@@ -600,18 +603,31 @@ function ConfirmStep({
     </div>
   )}
 </div>
+      <div className="px-5 mt-3">
+        <label className="block text-[12px] font-bold text-text-primary uppercase tracking-wide mb-1.5">
+          {t.booking.phone}
+           <span className='text-[8px] mx-2'>*Required</span>
+        </label>
+        <input
+          type="tel"
+          placeholder="(123) 456-7890"
+          value={draft.phone}
+          onChange={(e) => onChange({ phone: e.target.value.replace(/[^\d+\-()\s]/g, '') })}
+          className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
+        />
+      </div>
 
     <div className="px-5 mt-3 relative">
      <BreedAutoComplete 
       breed={draft.breed}
-      onChange={(e) => onChange({ breed: e.target.value })}
+      onChange={(e) => onChange({ breed: e })}
       t={t}
      />
      </div>
 
       <div className="px-5 mt-3">
         <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
-          KakaoId (optional)
+          KakaoId
         </label>
         <input
           type="text"
@@ -622,18 +638,6 @@ function ConfirmStep({
         />
       </div>
 
-      <div className="px-5 mt-3">
-        <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
-          {t.booking.phone}
-        </label>
-        <input
-          type="tel"
-          placeholder="(123) 456-7890"
-          value={draft.phone}
-          onChange={(e) => onChange({ phone: e.target.value })}
-          className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
-        />
-      </div>
 
       <div className="px-5 mt-3 pb-2">
         <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
@@ -656,91 +660,203 @@ function ConfirmationPage({
   draft,
   selectedStyle,
   selectedService,
-  onCreateAccount,
+  onUpdate,
   t,
 }: {
   draft: BookingDraft
   selectedService: Service | null
   selectedStyle: GroomingStyle | null
-  onCreateAccount: () => void
+  onUpdate: (fields: Partial<BookingDraft>) => void
   t: any
 }) {
+  const [editing, setEditing] = useState(false)
+  const [dogName, setDogName] = useState(draft.dogName)
+  const [phone, setPhone] = useState(draft.phone)
+  const [kakaoid, setKakaoid] = useState(draft.kakaoid ?? '')
+  const [notes, setNotes] = useState(draft.notes)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
-  const [session, setSession] = useState<any>(null)
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-    })
-  }, [])
+  const hasChanges =
+  dogName.trim() !== draft.dogName.trim() ||
+  phone.trim() !== draft.phone.trim() ||
+  kakaoid.trim() !== (draft.kakaoid ?? '').trim() ||
+  notes.trim() !== draft.notes.trim()
 
-  return (
-    <div className="flex flex-col items-center justify-center px-5 py-8 text-center">
-      <div className="w-16 h-16 bg-brand-pale rounded-full flex items-center justify-center mb-4">
-        <i className="ti ti-circle-check text-brand text-[32px]" aria-hidden="true" />
-      </div>
-      <h2 className="font-nunito font-extrabold text-2xl text-text-primary mb-2">
-        {t.booking.bookingReceivedMessage}
-      </h2>
-      <div className="w-full bg-white rounded-[20px] border border-border p-5 mb-6">
-        <div className="space-y-3">
-          <div className="flex justify-between pb-3 border-b border-border">
-            <span className="text-[13px] font-semibold text-text-muted">{t.booking.dog}</span>
+  async function handleSave() {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const res = await fetch(`/api/bookings/${draft.bookingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dogName, phone, kakaoid, notes }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setSaveError(json.error ?? 'Something went wrong')
+        return
+      }
+
+      onUpdate({ dogName, phone, kakaoid, notes })
+      setEditing(false)
+    } catch {
+      setSaveError('Network error, please try again')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+ return (
+  <div className='app-shell'>
+  <div className="flex flex-col items-center justify-center px-5 py-8 text-center">
+    <div className="w-16 h-16 bg-brand-pale rounded-full flex items-center justify-center mb-4">
+      <i className="ti ti-circle-check text-brand text-[32px]" aria-hidden="true" />
+    </div>
+    <h2 className="font-nunito font-extrabold text-2xl text-text-primary mb-2">
+      {t.booking.bookingReceivedMessage}
+    </h2>
+
+    <div className="w-full bg-white rounded-[20px] border border-border p-5 mb-3">
+      <div className="space-y-3">
+
+        {/* Locked field */}
+        <div className="flex justify-between items-center pb-3 border-b border-border">
+          <span className="text-[13px] font-semibold text-text-muted flex items-center gap-1">
+            {t.booking.service}
+            {editing && <i className="ti ti-lock text-[12px] text-text-muted" aria-hidden="true" />}
+          </span>
+          <span className="text-[13px] font-bold text-text-primary">{selectedService?.name ?? '—'}</span>
+        </div>
+
+        {/* Locked field */}
+        <div className="flex justify-between items-center pb-3 border-b border-border">
+          <span className="text-[13px] font-semibold text-text-muted flex items-center gap-1">
+            {t.booking.date}
+            {editing && <i className="ti ti-lock text-[12px] text-text-muted" aria-hidden="true" />}
+          </span>
+          <span className="text-[13px] font-bold text-text-primary">{formatDateTimeDisplay(draft.dateTime)}</span>
+        </div>
+
+        {editing && (
+          <p className="text-[11px] text-text-muted -mt-1 pb-1 text-left">
+            {t.booking.lockedFieldsNote}
+          </p>
+        )}
+
+        {/* Editable fields */}
+        <div className="flex justify-between items-center pb-3 border-b border-border">
+          <span className="text-[13px] font-semibold text-text-muted">{t.booking.dog}</span>
+          {editing ? (
+            <input
+              value={dogName}
+              onChange={(e) => setDogName(e.target.value)}
+              className="text-[13px] font-bold text-text-primary text-right border-b border-brand outline-none w-1/2"
+            />
+          ) : (
             <span className="text-[13px] font-bold text-text-primary">{draft.dogName || '—'}</span>
-          </div>
-
-          <div className="flex justify-between pb-3 border-b border-border">
-            <span className="text-[13px] font-semibold text-text-muted">{t.booking.service}</span>
-            <span className="text-[13px] font-bold text-text-primary">{selectedService?.name ?? '—'}</span>
-          </div>
-
-          <div className="flex justify-between pb-3 border-b border-border">
-            <span className="text-[13px] font-semibold text-text-muted">{t.booking.date}</span>
-            <span className="text-[13px] font-bold text-text-primary">{formatDateTimeDisplay(draft.dateTime)}</span>
-          </div>
-
-           <div className="flex justify-between pb-3 border-b border-border">
-            <span className="text-[13px] font-semibold text-text-muted">{t.booking.phone}</span>
-            <span className="text-[13px] font-bold text-text-primary">{draft.phone ?? '—'}</span>
-          </div>
-
-           <div className="flex justify-between pb-3 border-b border-border">
-            <span className="text-[13px] font-semibold text-text-muted">KakaoId</span>
-            <span className="text-[13px] font-bold text-text-primary">{draft.kakaoid ?? '—'}</span>
-          </div>
-
-          <div className="flex justify-between pb-3 border-b border-border">
-            <span className="text-[13px] font-semibold">{t.booking.total}</span>
-            <span className="font-nunito font-extrabold text-[18px] text-brand">${selectedService?.price}</span>
-          </div>
-
-
-          {selectedService?.needs_style && (
-            <div className="flex justify-between pb-3 border-b border-border">
-              <span className="text-[13px] font-semibold text-text-muted">{t.booking.style}</span>
-              <span className="text-[13px] font-bold text-text-primary">{selectedStyle?.name ?? '—'}</span>
-            </div>
           )}
         </div>
+
+        <div className="flex justify-between items-center pb-3 border-b border-border">
+          <span className="text-[13px] font-semibold text-text-muted">{t.booking.phone}</span>
+          {editing ? (
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/[^\d+\-()\s]/g, ''))}
+              className="text-[13px] font-bold text-text-primary text-right border-b border-brand outline-none w-1/2"
+            />
+          ) : (
+            <span className="text-[13px] font-bold text-text-primary">{draft.phone ?? '—'}</span>
+          )}
+        </div>
+
+        <div className="flex justify-between items-center pb-3 border-b border-border">
+          <span className="text-[13px] font-semibold text-text-muted">KakaoId</span>
+          {editing ? (
+            <input
+              value={kakaoid}
+              onChange={(e) => setKakaoid(e.target.value)}
+              className="text-[13px] font-bold text-text-primary text-right border-b border-brand outline-none w-1/2"
+            />
+          ) : (
+            <span className="text-[13px] font-bold text-text-primary">{draft.kakaoid ?? '—'}</span>
+          )}
+        </div>
+
+        {editing && (
+          <div className="pb-1 text-left">
+            <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
+              {t.booking.notesForGroomer}
+            </label>
+            <textarea
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-[12px] text-[13px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand resize-none"
+            />
+          </div>
+        )}
+
+        <div className="flex justify-between pb-3 border-b border-border">
+          <span className="text-[13px] font-semibold">{t.booking.total}</span>
+          <span className="font-nunito font-extrabold text-[18px] text-brand">${selectedService?.price}</span>
+        </div>
+
+        {selectedService?.needs_style && (
+          <div className="flex justify-between">
+            <span className="text-[13px] font-semibold text-text-muted">{t.booking.style}</span>
+            <span className="text-[13px] font-bold text-text-primary">{selectedStyle?.name ?? '—'}</span>
+          </div>
+        )}
       </div>
-      
-      {/* {!session?.user && ( */}
-      <div className="w-full space-y-3">
-        {/* <button
-          onClick={onCreateAccount}
-          className="w-full bg-brand text-white font-nunito font-bold text-base rounded-full py-4 transition-opacity active:opacity-80"
-        >
-          {t.booking.createAccount}
-        </button> */}
-        <Link
-          href="/"
-          className="w-full bg-white text-brand font-nunito font-bold text-base rounded-full py-4 border-2 border-brand flex items-center justify-center transition-opacity active:opacity-80"
-        >
-          {t.booking.continue}
-        </Link>
-      </div>
-        {/* )} */}
     </div>
-  )
+
+    {saveError && <p className="text-red-500 text-[12px] mb-3">{saveError}</p>}
+
+    <div className="w-full space-y-3">
+      {editing ? (
+        <>
+          <button
+            onClick={handleSave}
+            disabled={saving || !hasChanges}
+            className="w-full bg-brand text-white font-nunito font-bold text-base rounded-full py-4 disabled:opacity-40 transition-opacity active:opacity-80"
+          >
+            {saving ? '...' : t.booking.saveChanges}
+          </button>
+          <button
+            onClick={() => {
+              setDogName(draft.dogName)
+              setPhone(draft.phone)
+              setKakaoid(draft.kakaoid ?? '')
+              setNotes(draft.notes)
+              setEditing(false)
+            }}
+            className="w-full bg-white text-text-secondary font-nunito font-bold text-base rounded-full py-4 border-2 border-border flex items-center justify-center transition-opacity active:opacity-80"
+          >
+            {t.booking.cancel}
+          </button>
+        </>
+      ) : (
+        <>
+          <button
+            onClick={() => setEditing(true)}
+            className="w-full bg-white text-brand font-nunito font-bold text-base rounded-full py-4 border-2 border-brand flex items-center justify-center transition-opacity active:opacity-80"
+          >
+            {t.booking.editRequest}
+          </button>
+          <Link
+            href="/"
+            className="w-full bg-brand text-white font-nunito font-bold text-base rounded-full py-4 flex items-center justify-center transition-opacity active:opacity-80"
+          >
+            {t.booking.continue}
+          </Link>
+        </>
+      )}
+    </div>
+  </div>
+</div>
+)
 }
 
 // ─── Account creation page ────────────────────────────────────────────────────
@@ -1015,10 +1131,10 @@ const user = session?.user
         return
       }
 
-      // setDraft((prev) => ({
-      //   ...prev,
-      //   bookingId: json.booking.id,
-      // }))
+      setDraft((prev) => ({
+        ...prev,
+        bookingId: json.booking.id,
+      }))
 
 
       // upload photos AFTER booking succeeds
@@ -1139,21 +1255,19 @@ useEffect(() => {
   if (isConfirmed) {
     return (
       <div>
-        <div className="flex-1 overflow-y-auto no-scrollbar">
-          <ConfirmationPage
-            draft={draft}
-            selectedStyle={selectedStyle}
-            selectedService={selectedService}
-            onCreateAccount={() => setIsCreatingAccount(true)}
-            t={t}
-          />
-        </div>
+        <ConfirmationPage
+          draft={draft}
+          selectedStyle={selectedStyle}
+          selectedService={selectedService}
+          onUpdate={(fields) => updateDraft(fields)}
+          t={t}
+        />
       </div>
     )
   }
 
   return (
-    <div>
+    <div className='app-shell'>
       <div className="flex items-center gap-3 px-5 pt-4">
         <button
           onClick={step === 1 ? undefined : handleBack}
