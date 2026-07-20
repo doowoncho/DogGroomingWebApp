@@ -11,6 +11,23 @@ const transporter = nodemailer.createTransport({
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL
 
+// "2026-07-19T09:00:00" -> "Jul 19, 2026 · 9:00 AM"
+function formatDateTime(dateTime: string) {
+  const d = new Date(dateTime)
+  if (isNaN(d.getTime())) return dateTime
+
+  const dateLabel = d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+  const timeLabel = d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+  return `${dateLabel} · ${timeLabel}`
+}
+
 export async function POST(req: Request) {
   try {
     const {
@@ -18,12 +35,12 @@ export async function POST(req: Request) {
       // email,
       phone,
       dog_name,
-      date,
-      time,
+      date_time,
       notes,
+      kakaoid
     } = await req.json()
 
-    if (!dog_name || !date || !time) {
+    if (!dog_name || !date_time) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -37,14 +54,15 @@ export async function POST(req: Request) {
       html: `
         <h2>New Appointment Request</h2>
         
-        <p><strong>Phone:</strong> ${phone ?? 'N/A'}</p>
-
-        <hr />
-
+        <p><strong>Date:</strong> ${formatDateTime(date_time)}</p>
         <p><strong>Dog:</strong> ${dog_name}</p>
         <p><strong>Service:</strong> ${service}</p>
-        <p><strong>Date:</strong> ${date}</p>
-        <p><strong>Time:</strong> ${time}</p>
+        
+        <hr />
+        
+
+        <p><strong>Phone:</strong> ${phone}</p>
+        <p><strong>KakaoId:</strong> ${kakaoid}</p>
 
         ${
           notes
@@ -53,8 +71,6 @@ export async function POST(req: Request) {
         }
 
         <br/>
-
-        <p>Open admin dashboard to approve or decline.</p>
       `,
     })
 

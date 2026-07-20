@@ -16,7 +16,7 @@ const STATUS_STYLES: Record<string, string> = {
   confirmed:  'bg-blue-50 text-blue-800',
   inprogress: 'bg-purple-50 text-purple-800',
   completed:  'bg-green-50 text-green-800',
-  cancelled:  'bg-gray-100 text-gray-600',
+  cancelled:  'bg-red-100 text-red-600',
   declined:   'bg-red-50 text-red-700',
 }
 
@@ -749,8 +749,7 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
         body: JSON.stringify({
           email:     booking.email,
           dog_name:  booking.dog_name,
-          date:      booking.date,
-          time:      booking.time,
+          date:      booking.date_time,
           status:    bookingStatus,
         }),
       }).catch(err => console.error('Email notify failed:', err))
@@ -767,17 +766,23 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
     .filter(a => activeTab === 'all' || a.status === activeTab)
     .filter(a => {
       const q = search.toLowerCase()
-      return !q || a.dog_name.toLowerCase().includes(q) || a.breed?.toLowerCase().includes(q)
+      return !q || a.dog_name.toLowerCase().includes(q) || a.breed?.toLowerCase().includes(q) || a.phone?.toLowerCase().includes(q) || a.kakaoid?.toLowerCase().includes(q)
     })
 
   function countFor(tab: BookingTab) {
     return tab === 'all' ? appointments.length : appointments.filter(a => a.status === tab).length
   }
 
-  function formatDate(d: string) {
-    const [y, m, day] = d.split('-').map(Number)
-    return new Date(y, m - 1, day).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })
-  }
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString('en-CA', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    timeZone: 'America/Edmonton',
+  });
+}
 
   function initials(name: string) {
     return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -862,7 +867,7 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
               {[
                 { label: 'Total',     value: appointments.length },
                 { label: 'Pending',   value: countFor('pending') },
-                { label: 'Today',     value: appointments.filter(a => a.date === new Date().toISOString().slice(0, 10)).length },
+                { label: 'Today',     value: appointments.filter(a => a.date_time === new Date().toISOString().slice(0, 10)).length },
                 { label: 'Completed', value: countFor('completed') },
               ].map(s => (
                 <div key={s.label} className="bg-white rounded-2xl border border-border px-4 py-3">
@@ -877,7 +882,7 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
                 <div className="px-4 pt-4 pb-3 border-b border-border">
                   <input
                     type="text"
-                    placeholder="Search dog, breed, or owner…"
+                    placeholder="Search dog, breed, or phone/kakaoid"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     className="w-full text-sm border border-border rounded-full px-4 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand/30"
@@ -919,7 +924,7 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
                             {STATUS_LABELS[a.status]}
                           </span>
                         </div>
-                        <p className="text-xs text-text-muted truncate"> · {formatDate(a.date)}</p>
+                        <p className="text-xs text-text-muted truncate"> · {formatDate(a.date_time)}</p>
                       </div>
                       {/* <div className="flex gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
                         {a.status === 'pending' && <>
@@ -955,8 +960,9 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
                   <div className="space-y-3 mb-4 text-sm">
                     {[
                       { label: 'Service', value:  serviceMap[selected.service_id] },
-                      { label: 'Date',    value: `${formatDate(selected.date)} at ${selected.time}` },
-                      { label: 'Email',   value: selected.email },
+                      { label: 'Date',    value: `${formatDate(selected.date_time)}` },
+                      { label: 'Phone',   value: selected.phone },
+                      { label: 'KakaoId',   value: selected.kakaoid },
                       { label: 'Status',  value: (
                         <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${STATUS_STYLES[selected.status]}`}>
                           {STATUS_LABELS[selected.status]}
@@ -969,7 +975,7 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
                       </div>
                     ))}
                   </div>
-                  <div className="bg-gray-50 rounded-xl px-3 py-2.5 mb-4">
+                  {/* <div className="bg-gray-50 rounded-xl px-3 py-2.5 mb-4">
                     <p className="text-xs text-text-muted mb-2 uppercase tracking-wide">
                       Photos
                     </p>
@@ -997,7 +1003,7 @@ async function updateStatus(bookingId: string, bookingStatus: Booking['status'])
                       ))}
                       </div>
                     )}
-                  </div>
+                  </div> */}
                   <div className="bg-gray-50 rounded-xl px-3 py-2.5 mb-4">
                     <p className="text-xs text-text-muted mb-1 uppercase tracking-wide">Notes</p>
                     <p className="text-sm text-text-primary leading-relaxed">{selected.notes}</p>

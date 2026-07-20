@@ -59,11 +59,11 @@ export interface DBGroomingStyle {
 
 export interface BookingDraft {
   serviceId: number | null
-  date: string | null
-  time: string | null
+  dateTime: string | null
   styleId: number | null
   photoUrls: string[]
   dogName: string
+  kakaoid: string
   email: string
   phone: string
   notes: string
@@ -80,13 +80,13 @@ export interface Booking {
   service_name: string
   service_price: number
   duration_slots: number
-  date: string
-  time: string
+  date_time: string
   style_id: number | null
   dog_name: string
   breed: string | null
   email: string
   phone: string
+  kakaoid: string
   notes: string | null
   status: BookingStatus
 }

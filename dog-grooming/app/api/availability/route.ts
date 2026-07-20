@@ -14,6 +14,18 @@ const ALL_SLOTS = [
   '5:00 PM',
 ]
 
+// "2026-07-19T09:00:00" -> "9:00 AM"
+function timeLabelFromDateTime(dateTime: string) {
+  const time = dateTime.split('T')[1] ?? dateTime
+  const [hhStr, mmStr] = time.split(':')
+  const hours = Number(hhStr)
+  const minutes = Number(mmStr)
+  const period = hours >= 12 ? 'PM' : 'AM'
+  let hours12 = hours % 12
+  if (hours12 === 0) hours12 = 12
+  return `${hours12}:${String(minutes).padStart(2, '0')} ${period}`
+}
+
 export async function GET(req: Request) {
   const ip = req.headers.get("x-forwarded-for") ?? "anon";
   const { success } = await browseLimiter.limit(ip);
@@ -44,8 +56,9 @@ export async function GET(req: Request) {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('bookings')
-    .select('time, services(slots)')
-    .eq('date', date)
+    .select('date_time, services(slots)')
+    .gte('date_time', `${date}T00:00:00`)
+    .lt('date_time', `${date}T23:59:59`)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
@@ -54,7 +67,8 @@ export async function GET(req: Request) {
 
   //checking every booking and marking slots as occupied
   for (const booking of data ?? []) {
-    const startIndex = ALL_SLOTS.indexOf(booking.time)
+    const timeLabel = timeLabelFromDateTime(booking.date_time)
+    const startIndex = ALL_SLOTS.indexOf(timeLabel)
     if (startIndex === -1) continue
     const slots = (booking.services as any)?.slots ?? 1
 

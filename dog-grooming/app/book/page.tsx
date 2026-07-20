@@ -15,6 +15,55 @@ import { useSearchParams } from 'next/dist/client/components/navigation'
 import BreedAutoComplete from '@/components/ui/BreedAutoComplete'
 
 type Step = 1 | 2 | 3 | 4
+
+// ─── DateTime helpers ─────────────────────────────────────────────────────
+// A combined dateTime value is a real local timestamp: "2026-07-19T09:00:00"
+// This is what gets stored directly in a single `date_time` DB column.
+
+// "9:00 AM" -> "09:00:00"
+function to24HourTime(label: string): string {
+  const [time, meridiemRaw] = label.trim().split(' ')
+  const meridiem = meridiemRaw?.toUpperCase()
+  let [hours, minutes] = time.split(':').map(Number)
+  if (meridiem === 'PM' && hours !== 12) hours += 12
+  if (meridiem === 'AM' && hours === 12) hours = 0
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`
+}
+
+// "09:00:00" -> "9:00 AM"
+function to12HourLabel(time24: string): string {
+  const [hh, mm] = time24.split(':').map(Number)
+  const period = hh >= 12 ? 'PM' : 'AM'
+  let hours12 = hh % 12
+  if (hours12 === 0) hours12 = 12
+  return `${hours12}:${String(mm).padStart(2, '0')} ${period}`
+}
+
+function splitDateTime(dt: string | null | undefined): { date: string | null; time: string | null } {
+  if (!dt) return { date: null, time: null }
+  const idx = dt.indexOf('T')
+  if (idx === -1) return { date: dt, time: null }
+  return { date: dt.slice(0, idx), time: dt.slice(idx + 1) }
+}
+
+// date: "2026-07-19", timeLabel: "9:00 AM" -> "2026-07-19T09:00:00"
+function combineDateTime(date: string, timeLabel: string) {
+  return `${date}T${to24HourTime(timeLabel)}`
+}
+
+function formatDateTimeDisplay(dt: string | null | undefined) {
+  const { date, time } = splitDateTime(dt)
+  if (!date || !time) return '—'
+  const d = new Date(`${date}T${time}`)
+  const dateLabel = d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+  const timeLabel = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  return `${dateLabel} · ${timeLabel}`
+}
+
 // ─── Step indicator ──────────────────────────────────────────────────────────
 function StepIndicator({ current, total }: { current: Step; total: number }) {
   return (
@@ -101,21 +150,23 @@ function ServiceStep({
 
 // ─── Step 2 — Date & time ────────────────────────────────────────────────────
 function DateTimeStep({
-  selectedDate,
-  selectedTime,
+  value,
+  onChange,
   selectedService,
-  onDateSelect,
-  onTimeSelect,
   t,
 }: {
-  selectedDate: string | null
-  selectedTime: string | null
+  value: string | null
+  onChange: (dateTime: string) => void
   selectedService: Service | null
-  onDateSelect: (d: string) => void
-  onTimeSelect: (t: string) => void
   language: string
   t: any
 }) {
+  const { date: initialDate, time: initialTime24 } = splitDateTime(value)
+  const [selectedDate, setSelectedDate] = useState<string | null>(initialDate)
+  const [selectedTime, setSelectedTime] = useState<string | null>(
+    initialTime24 ? to12HourLabel(initialTime24) : null,
+  )
+
   const [viewingDate, setViewingDate] = useState(new Date().getDate() ? new Date() : new Date(new Date().setDate(1)))  // handle edge case for month-end
   const [slots, setSlots] = useState<{ time: string; available: boolean }[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
@@ -130,30 +181,43 @@ function DateTimeStep({
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const monthNames = t.months
 
-const [slotsCache, setSlotsCache] = useState<Record<string, { time: string; available: boolean }[]>>({})
+  const [slotsCache, setSlotsCache] = useState<Record<string, { time: string; available: boolean }[]>>({})
 
-async function fetchSlots(date: string) {
-  // return cached result if already fetched
-  if (slotsCache[date]) {
-    setSlots(slotsCache[date])
-    return
+  async function fetchSlots(date: string) {
+    // return cached result if already fetched
+    if (slotsCache[date]) {
+      setSlots(slotsCache[date])
+      return
+    }
+
+    setLoadingSlots(true)
+    try {
+      const serviceSlots = selectedService?.slots ?? 1  // ← pass selected service slots
+      const res = await fetch(
+        `/api/availability?date=${encodeURIComponent(date)}&slots=${serviceSlots}`
+      )
+      const json = await res.json()
+      setSlots(json.slots ?? [])
+      setSlotsCache((prev) => ({ ...prev, [date]: json.slots ?? [] }))
+    } catch (err) {
+      console.error('Failed to fetch slots:', err)
+    } finally {
+      setLoadingSlots(false)
+    }
   }
 
-  setLoadingSlots(true)
-  try {
-    const serviceSlots = selectedService?.slots ?? 1  // ← pass selected service slots
-    const res = await fetch(
-      `/api/availability?date=${encodeURIComponent(date)}&slots=${serviceSlots}`
-    )
-    const json = await res.json()
-    setSlots(json.slots ?? [])
-    setSlotsCache((prev) => ({ ...prev, [date]: json.slots ?? [] }))
-  } catch (err) {
-    console.error('Failed to fetch slots:', err)
-  } finally {
-    setLoadingSlots(false)
+  function handleDateSelect(isoDate: string) {
+    setSelectedDate(isoDate)
+    setSelectedTime(null)
+    fetchSlots(isoDate)
   }
-}
+
+  function handleTimeSelect(time: string) {
+    setSelectedTime(time)
+    if (selectedDate) {
+      onChange(combineDateTime(selectedDate, time))
+    }
+  }
 
   return (
     <div>
@@ -200,15 +264,12 @@ async function fetchSlots(date: string) {
             const isToday = todayDate === d
             const isoDate = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
 
-          const active = selectedDate === isoDate
+            const active = selectedDate === isoDate
             return (
               <button
                 key={d}
                 disabled={isPast}
-                onClick={() => {
-                  onDateSelect(isoDate)
-                  fetchSlots(isoDate)
-                }}
+                onClick={() => handleDateSelect(isoDate)}
                 className={cn(
                   'aspect-square flex items-center justify-center text-[13px] font-semibold font-nunito rounded-full transition-colors',
                   isPast && 'text-border cursor-not-allowed',
@@ -244,7 +305,7 @@ async function fetchSlots(date: string) {
                 <button
                   key={time}
                   disabled={!available}
-                  onClick={() => available && onTimeSelect(time)}
+                  onClick={() => available && handleTimeSelect(time)}
                   className={cn(
                     'py-2.5 border rounded-[12px] text-[13px] font-semibold font-nunito transition-colors',
                     !available && 'text-border bg-surface border-border cursor-not-allowed',
@@ -482,8 +543,7 @@ function ConfirmStep({
       <div className="mx-5 mt-3 bg-white rounded-[20px] border border-border overflow-hidden">
         {[
           { label: t.booking.service, value: selectedService?.name ?? '—' },
-          { label: t.booking.date, value: draft.date ?? '—' },
-          { label: t.booking.time, value: draft.time ?? '—' },
+          { label: t.booking.date, value: formatDateTimeDisplay(draft.dateTime) },
            ...(serviceNeedsStyle
         ? [{ label: t.booking.style, value: selectedStyle?.name ?? '—' }]
         : []),
@@ -549,18 +609,18 @@ function ConfirmStep({
      />
      </div>
 
-      {/* <div className="px-5 mt-3">
+      <div className="px-5 mt-3">
         <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
-          {t.booking.email}
+          KakaoId (optional)
         </label>
         <input
-          type="email"
-          placeholder="your@email.com"
-          value={draft.email}
-          onChange={(e) => onChange({ email: e.target.value })}
+          type="text"
+          placeholder="kakaoid"
+          value={draft.kakaoid ?? ''}
+          onChange={(e) => onChange({ kakaoid: e.target.value })}
           className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
         />
-      </div> */}
+      </div>
 
       <div className="px-5 mt-3">
         <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
@@ -635,17 +695,22 @@ function ConfirmationPage({
 
           <div className="flex justify-between pb-3 border-b border-border">
             <span className="text-[13px] font-semibold text-text-muted">{t.booking.date}</span>
-            <span className="text-[13px] font-bold text-text-primary">{draft.date ?? '—'}</span>
-          </div>
-
-          <div className="flex justify-between pb-3 border-b border-border">
-            <span className="text-[13px] font-semibold text-text-muted">{t.booking.time}</span>
-            <span className="text-[13px] font-bold text-text-primary">{draft.time ?? '—'}</span>
+            <span className="text-[13px] font-bold text-text-primary">{formatDateTimeDisplay(draft.dateTime)}</span>
           </div>
 
            <div className="flex justify-between pb-3 border-b border-border">
             <span className="text-[13px] font-semibold text-text-muted">{t.booking.phone}</span>
             <span className="text-[13px] font-bold text-text-primary">{draft.phone ?? '—'}</span>
+          </div>
+
+           <div className="flex justify-between pb-3 border-b border-border">
+            <span className="text-[13px] font-semibold text-text-muted">KakaoId</span>
+            <span className="text-[13px] font-bold text-text-primary">{draft.kakaoid ?? '—'}</span>
+          </div>
+
+          <div className="flex justify-between pb-3 border-b border-border">
+            <span className="text-[13px] font-semibold">{t.booking.total}</span>
+            <span className="font-nunito font-extrabold text-[18px] text-brand">${selectedService?.price}</span>
           </div>
 
 
@@ -827,8 +892,7 @@ function BookPageContent() {
   const [userDogs, setUserDogs] = useState<{ name: string; breed: string }[]>([])
   const [draft, setDraft] = useState<BookingDraft>({
     serviceId: null,
-    date: null,
-    time: null,
+    dateTime: null,
     styleId: null,
     photoUrls: [],
     dogName: dogNameParam ?? '',
@@ -838,7 +902,8 @@ function BookPageContent() {
     breed: breedParam ?? null,
     bookingId: null,
     user_id: null,
-    dogSize: dogSizeParam
+    dogSize: dogSizeParam,
+    kakaoid: ''
   })
   const { services } = useServices(language, draft.dogSize)
 useEffect(() => {
@@ -871,7 +936,7 @@ const updateDraft = (fields: Partial<BookingDraft>) =>
   setDraft((prev) => ({ ...prev, ...fields }))
 
 function handleServiceSelect(service: Service) {
-  updateDraft({ serviceId: service.id, date: null, time: null })
+  updateDraft({ serviceId: service.id, dateTime: null })
 }
 
   const selectedStyle = styles.find((s) => s.id === draft.styleId) ?? null
@@ -881,7 +946,7 @@ function handleServiceSelect(service: Service) {
 
   const canContinue =
   (step === 1 && draft.serviceId !== null) ||
-  (step === 2 && draft.date !== null && draft.time !== null) ||
+  (step === 2 && draft.dateTime !== null) ||
   (step === 3 && draft.styleId !== null) ||
   (step === 4 &&
     !!draft.dogName &&
@@ -918,8 +983,7 @@ const user = session?.user
       service_id:     draft.serviceId,
       service_price:  selectedService?.price,
       duration_slots: selectedService?.slots,
-      date:           draft.date,
-      time:           draft.time,
+      date_time:      draft.dateTime,
       style_id:       draft.styleId,
       dog_name:       draft.dogName,
       breed:          draft.breed,
@@ -927,14 +991,14 @@ const user = session?.user
       phone:          draft.phone,
       notes:          draft.notes,
       bookingId:      draft.bookingId,
-      user_id:       user ? user.id : null
+      user_id:       user ? user.id : null,
+      kakaoid:        draft.kakaoid
     }
 
     try {
-      const idempotencyKey = crypto.randomUUID()
       const res = await fetch('/api/bookings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Idempotency-Key': idempotencyKey },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
 
@@ -982,9 +1046,9 @@ const user = session?.user
         service: selectedService?.name,
         email: draft.email,
         phone: draft.phone,
+        kakaoid: draft.kakaoid,
         dog_name: draft.dogName,
-        date: draft.date,
-        time: draft.time,
+        date_time: draft.dateTime,
       }),
     })
 
@@ -1122,11 +1186,9 @@ useEffect(() => {
         )}
         {step === 2 && (
           <DateTimeStep
-            selectedDate={draft.date}
-            selectedTime={draft.time}
-            selectedService={selectedService} 
-            onDateSelect={(d) => updateDraft({ date: d, time: null })}
-            onTimeSelect={(t) => updateDraft({ time: t })}
+            value={draft.dateTime}
+            onChange={(dateTime) => updateDraft({ dateTime })}
+            selectedService={selectedService}
             language={language}
             t={t}
           />

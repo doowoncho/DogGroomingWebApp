@@ -5,6 +5,7 @@ import './globals.css'
 import TopBar from '@/components/layout/TopBar'
 import BottomNav from '@/components/layout/BottomNav'
 import { LanguageProvider } from '@/components/LanguageContext'
+import ContactFooter from '@/components/layout/ContactFooter'
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -50,6 +51,7 @@ export default function RootLayout({
             </div>
 
             {/* <BottomNav /> */}
+            <ContactFooter></ContactFooter>
           </div>
         </LanguageProvider>
       </body>

@@ -15,18 +15,25 @@ const SUBJECTS: Record<string, string> = {
   cancelled: 'Your appointment has been cancelled / 예약이 취소되었습니다',
 }
 
-const MESSAGES: Record<string, (dogName: string, date: string, time: string) => string> = {
-  confirmed: (dogName, date, time) => `
+const MESSAGES: Record<string, (dogName: string, date: string, time: string, phone:string, kakaoid:string) => string> = {
+  confirmed: (dogName, date, time, phone, kakaoid) => `
+    <p>안녕하세요!</p>
+    <p><strong>${dogName}</strong>의 미용 예약이 <strong>${date} ${time}</strong>으로 <strong>확정</strong>되었습니다. 곧 만나요!</p>
+
+    <p>고객님의 연락처 정보는 전화번호: ${phone}, 카카오톡 아이디: ${kakaoid} 입니다.</p>
+
+    <p>변경이 필요하신 경우 가능한 빨리 연락 주세요.</p>
+
     <p>Hi there!</p>
     <p>Great news — your grooming appointment for <strong>${dogName}</strong> on <strong>${date} at ${time}</strong> has been <strong>confirmed</strong>. We look forward to seeing you!</p>
+    
+    <p>The contact info we have for you is phone: ${phone} and kakaoid: ${kakaoid}
+    
     <p>If you need to make any changes, please contact us as soon as possible.</p>
 
     <hr style="border:none;border-top:1px solid #eee;margin:24px 0" />
+    `,
 
-    <p>안녕하세요!</p>
-    <p><strong>${dogName}</strong>의 미용 예약이 <strong>${date} ${time}</strong>으로 <strong>확정</strong>되었습니다. 곧 만나요!</p>
-    <p>변경이 필요하신 경우 가능한 빨리 연락 주세요.</p>
-  `,
   declined: (dogName, date, time) => `
     <p>Hi there,</p>
     <p>Unfortunately, we're unable to accommodate your grooming booking for <strong>${dogName}</strong> on <strong>${date} at ${time}</strong>.</p>
@@ -53,14 +60,14 @@ const MESSAGES: Record<string, (dogName: string, date: string, time: string) => 
 
 export async function POST(req: Request) {
   try {
-    const { email, dog_name, date, time, status } = await req.json()
+    const { email, dog_name, date, time, status, phone, kakaoid } = await req.json()
 
     if (!email || !status || !SUBJECTS[status]) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     const subject = SUBJECTS[status]
-    const html = MESSAGES[status]?.(dog_name, date, time)
+    const html = MESSAGES[status]?.(dog_name, date, time, phone, kakaoid)
 
     if (!html) {
       return NextResponse.json({ error: 'Unknown status' }, { status: 400 })
