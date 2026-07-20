@@ -43,8 +43,11 @@ export default function HomePage() {
   return (
     <div className="page-full-bleed relative">
       {/* Main two-column layout */}
-      <div className="relative max-w-6xl mx-auto px-8 lg:px-16 lg:pt-13 pb-20 grid grid-cols-1 lg:grid-cols-2 lg:gap-16 items-center">
+      <div className="relative max-w-6xl mx-auto px-8 lg:px-16 lg:pt-13 pb-20 items-center">
+      {/* <div className="relative max-w-6xl mx-auto px-8 lg:px-16 lg:pt-13 pb-20 grid grid-cols-1 lg:grid-cols-2 lg:gap-16 items-center"> */}
         {/* Left column — pitch */}
+
+         {/*
         <div className="my-2">
           <p className="text-[11px] font-bold tracking-[0.09em] uppercase text-brand mb-5 flex items-center gap-2 hidden md:block">
             <span className="w-[14px] h-px bg-brand inline-block" />
@@ -79,6 +82,7 @@ export default function HomePage() {
           </div>
         </div>
 
+          */}
         {/* Right column — booking card */}
         <div className="relative">
           <div className="relative rounded-[24px] bg-white border border-black/[0.06] shadow-[0_20px_45px_-20px_rgba(0,0,0,0.18)] max-w-md ml-auto md:mx-auto sm:mx-auto">

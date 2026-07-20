@@ -28,7 +28,7 @@ export default function ContactFooter() {
         aria-label="KakaoTalk"
         className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-brand transition-colors"
       >
-        <i className="ti ti-message-circle text-[16px]" aria-hidden="true" />
+        <i className="ti ti-brand-kako-talk text-[16px]" aria-hidden="true" />
       </a>
 
       <a
