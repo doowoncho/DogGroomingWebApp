@@ -58,7 +58,7 @@ async function handleSignup() {
 }
 
   return (
-    <div>
+    <div className='app-shell'>
       {/* Back button */}
       <div className="px-5 pt-4">
         <Link
