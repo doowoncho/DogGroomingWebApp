@@ -5,12 +5,14 @@ export default function BreedAutoComplete({
   breed,
   t,
   onChange,
-  variant='default'
+  variant='default',
+  optionalTag = false
 }: {
   breed: string|null,
   t:any,
   onChange: (breed: string) => void,
-  variant?: 'default' | 'muted';
+  variant?: 'default' | 'muted',
+  optionalTag: boolean;
 }) {
  const [breedQuery, setBreedQuery] = useState(breed ?? '')
     const styles = {
@@ -27,7 +29,7 @@ const filteredBreeds = DOG_BREEDS.filter((breed) =>
   return (
      <div>
         <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
-          {t.booking.dogBreed}
+          {t.booking.dogBreed} {optionalTag ? '(optional)' : ''}
         </label>
        <input
           type="text"

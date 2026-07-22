@@ -156,13 +156,13 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Breed — optional */}
-               
+                {/* Breed — optional */}  
                 <BreedAutoComplete 
                   breed={breed}
                   onChange={(e) => setBreed(e)}
                   t={t}
                   variant='muted'
+                  optionalTag={true}
                 />
                
 
