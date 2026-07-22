@@ -762,10 +762,12 @@ function ConfirmationPage({
         <div className="flex justify-between items-center pb-3 border-b border-border">
           <span className="text-[13px] font-semibold text-text-muted">{t.booking.dogBreed}</span>
           {editing ? (
-            <input
-              value={breed}
-              onChange={(e) => setBreed(e.target.value)}
-              className="text-[13px] font-bold text-text-primary text-right border-b border-brand outline-none w-1/2"
+
+            <BreedAutoComplete 
+              breed={breed}
+              onChange={(e) => setBreed(e)}
+              t={t}
+              editMode={true}
             />
           ) : (
             <span className="text-[13px] font-bold text-text-primary">{draft.breed || '—'}</span>
