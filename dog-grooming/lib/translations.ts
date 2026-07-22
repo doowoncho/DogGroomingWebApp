@@ -47,7 +47,7 @@ export const translations = {
       continue: 'Continue',
       confirmBookingBtn: 'Request booking',
       dogName: "Dog's name",
-      dogBreed: "Dog's breed",
+      dogBreed: "Breed",
       searchBreed: 'Search breed...',
       dog: 'Dog',
       email: 'Email',

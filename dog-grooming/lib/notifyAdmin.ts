@@ -26,6 +26,7 @@ export async function notifyAdmin({
   notes,
   kakaoid,
   isEdit = false,
+  breed
 }: {
   service: string
   phone: string
@@ -34,7 +35,9 @@ export async function notifyAdmin({
   notes?: string | null
   kakaoid?: string | null
   isEdit?: boolean
+  breed?: string
 }) {
+
   const subject = isEdit
     ? `✏️ Updated Grooming Appointment Request - ${dog_name}`
     : `🐶 New Grooming Appointment Request - ${dog_name}`
@@ -49,6 +52,7 @@ export async function notifyAdmin({
       <h2>${heading}</h2>
       <p><strong>Date:</strong> ${formatDateTime(date_time)}</p>
       <p><strong>Dog:</strong> ${dog_name}</p>
+      <p><strong>Breed:</strong> ${breed}</p>
       <p><strong>Service:</strong> ${service}</p>
       <hr />
       <p><strong>Phone:</strong> ${phone}</p>

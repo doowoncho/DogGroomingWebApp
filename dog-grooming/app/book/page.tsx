@@ -535,8 +535,6 @@ function ConfirmStep({
     .filter((breed) => breed !== breedQuery)
     .slice(0, 6)
 
-
-    console.log(draft.breed)
   return (
     <div>
       <p className="px-5 pt-3.5 pb-1 font-nunito font-bold text-[15px] text-text-primary">
@@ -617,14 +615,6 @@ function ConfirmStep({
         />
       </div>
 
-    <div className="px-5 mt-3 relative">
-     <BreedAutoComplete 
-      breed={draft.breed}
-      onChange={(e) => onChange({ breed: e })}
-      t={t}
-     />
-     </div>
-
       <div className="px-5 mt-3">
         <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
           KakaoId
@@ -637,6 +627,14 @@ function ConfirmStep({
           className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
         />
       </div>
+
+      <div className="px-5 mt-3 relative">
+     <BreedAutoComplete 
+      breed={draft.breed}
+      onChange={(e) => onChange({ breed: e })}
+      t={t}
+     />
+     </div>
 
 
       <div className="px-5 mt-3 pb-2">
@@ -671,6 +669,7 @@ function ConfirmationPage({
 }) {
   const [editing, setEditing] = useState(false)
   const [dogName, setDogName] = useState(draft.dogName)
+  const [breed, setBreed] = useState(draft.breed ?? '')   // ← add this
   const [phone, setPhone] = useState(draft.phone)
   const [kakaoid, setKakaoid] = useState(draft.kakaoid ?? '')
   const [notes, setNotes] = useState(draft.notes)
@@ -678,10 +677,11 @@ function ConfirmationPage({
   const [saveError, setSaveError] = useState<string | null>(null)
 
   const hasChanges =
-  dogName.trim() !== draft.dogName.trim() ||
-  phone.trim() !== draft.phone.trim() ||
-  kakaoid.trim() !== (draft.kakaoid ?? '').trim() ||
-  notes.trim() !== draft.notes.trim()
+    dogName.trim() !== draft.dogName.trim() ||
+    breed.trim() !== (draft.breed ?? '').trim() ||        // ← add this
+    phone.trim() !== draft.phone.trim() ||
+    kakaoid.trim() !== (draft.kakaoid ?? '').trim() ||
+    notes.trim() !== draft.notes.trim()
 
   async function handleSave() {
     setSaving(true)
@@ -690,7 +690,7 @@ function ConfirmationPage({
       const res = await fetch(`/api/bookings/${draft.bookingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dogName, phone, kakaoid, notes }),
+        body: JSON.stringify({ dogName, breed, phone, kakaoid, notes }), // ← add breed
       })
       const json = await res.json()
       if (!res.ok) {
@@ -698,7 +698,7 @@ function ConfirmationPage({
         return
       }
 
-      onUpdate({ dogName, phone, kakaoid, notes })
+      onUpdate({ dogName, breed, phone, kakaoid, notes }) // ← add breed
       setEditing(false)
     } catch {
       setSaveError('Network error, please try again')
@@ -755,6 +755,20 @@ function ConfirmationPage({
             />
           ) : (
             <span className="text-[13px] font-bold text-text-primary">{draft.dogName || '—'}</span>
+          )}
+        </div>
+
+        {/* Breed — add this block */}
+        <div className="flex justify-between items-center pb-3 border-b border-border">
+          <span className="text-[13px] font-semibold text-text-muted">{t.booking.dogBreed}</span>
+          {editing ? (
+            <input
+              value={breed}
+              onChange={(e) => setBreed(e.target.value)}
+              className="text-[13px] font-bold text-text-primary text-right border-b border-brand outline-none w-1/2"
+            />
+          ) : (
+            <span className="text-[13px] font-bold text-text-primary">{draft.breed || '—'}</span>
           )}
         </div>
 
@@ -831,6 +845,7 @@ function ConfirmationPage({
               setKakaoid(draft.kakaoid ?? '')
               setNotes(draft.notes)
               setEditing(false)
+              setBreed(draft.breed ?? '')
             }}
             className="w-full bg-white text-text-secondary font-nunito font-bold text-base rounded-full py-4 border-2 border-border flex items-center justify-center transition-opacity active:opacity-80"
           >
@@ -1165,6 +1180,7 @@ const user = session?.user
         kakaoid: draft.kakaoid,
         dog_name: draft.dogName,
         date_time: draft.dateTime,
+        breed: draft.breed
       }),
     })
 
