@@ -12,7 +12,7 @@ export default function BreedAutoComplete({
   t:any,
   onChange: (breed: string) => void,
   variant?: 'default' | 'muted',
-  optionalTag: boolean;
+  optionalTag?: boolean;
 }) {
  const [breedQuery, setBreedQuery] = useState(breed ?? '')
     const styles = {
