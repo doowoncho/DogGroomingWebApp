@@ -21,8 +21,8 @@ const nunitoSans = Nunito_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'KIIN — Premium Dog Grooming',
-  description: 'Professional dog grooming. Book in under a minute.',
+  title: 'Mung Mung Grooming',
+  description: 'Private dog grooming.',
 }
 
 export default function RootLayout({
