@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, Suspense } from 'react'
+import { useState, useRef, Suspense, useEffect } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/components/LanguageContext'
@@ -8,13 +8,14 @@ import { translations } from '@/lib/translations'
 import type { BookingDraft, GroomingStyle, Service } from '@/types'
 import { useServices } from '@/lib/hooks/useServices'
 import { useStyles } from '@/lib/hooks/useStyles'
-import { useEffect } from 'react'
 import { DOG_BREEDS } from '@/lib/data'
 import { supabase } from '@/utils/supabase/client'
 import { useSearchParams } from 'next/dist/client/components/navigation'
 import BreedAutoComplete from '@/components/ui/BreedAutoComplete'
 
 type Step = 1 | 2 | 3 | 4
+
+const BOOKING_DRAFT_STORAGE_KEY = 'pawco:booking-draft'
 
 // ─── DateTime helpers ─────────────────────────────────────────────────────
 // A combined dateTime value is a real local timestamp: "2026-07-19T09:00:00"
@@ -162,7 +163,7 @@ function DateTimeStep({
   t: any
 }) {
   const { date: initialDate, time: initialTime24 } = splitDateTime(value)
-  const [selectedDate, setSelectedDate] = useState<string | null>(initialDate)
+  const [selectedDate, setSelectedDate] = useState<string | null>()
   const [selectedTime, setSelectedTime] = useState<string | null>(
     initialTime24 ? to12HourLabel(initialTime24) : null,
   )
@@ -268,12 +269,12 @@ function DateTimeStep({
             return (
               <button
                 key={d}
-                disabled={isPast}
+                disabled={isPast || isToday}
                 onClick={() => handleDateSelect(isoDate)}
                 className={cn(
                   'aspect-square flex items-center justify-center text-[13px] font-semibold font-nunito rounded-full transition-colors',
                   isPast && 'text-border cursor-not-allowed',
-                  isToday && !active && 'text-brand',
+                  isToday && 'text-brand cursor-not-allowed',
                   active && 'bg-brand text-white',
                   !isPast && !active && !isToday && 'text-text-primary hover:bg-surface-secondary',
                 )}
@@ -1038,7 +1039,32 @@ function BookPageContent() {
     dogSize: dogSizeParam,
     kakaoid: ''
   })
+  const [draftHydrated, setDraftHydrated] = useState(false)
   const { services } = useServices(language, draft.dogSize)
+
+  useEffect(() => {
+    try {
+      const storedDraft = sessionStorage.getItem(BOOKING_DRAFT_STORAGE_KEY)
+      if (storedDraft) {
+        setDraft((prev) => ({ ...prev, ...JSON.parse(storedDraft) }))
+      }
+    } catch (error) {
+      console.warn('Could not restore booking draft:', error)
+    } finally {
+      setDraftHydrated(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!draftHydrated || isConfirmed) return
+
+    try {
+      sessionStorage.setItem(BOOKING_DRAFT_STORAGE_KEY, JSON.stringify(draft))
+    } catch (error) {
+      console.warn('Could not persist booking draft:', error)
+    }
+  }, [draft, draftHydrated, isConfirmed])
+
 useEffect(() => {
   async function loadUserData() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -1138,7 +1164,8 @@ const user = session?.user
       const json = await res.json()
       if (res.status === 409) {
         // slot was taken between selecting and confirming
-        setSubmitError(json.error)
+        console.log(json.error)
+        setSubmitError("The selected time slot is no longer available. Please choose a different time.")
         setStep(2)
         return
       }
@@ -1147,6 +1174,8 @@ const user = session?.user
         setSubmitError(json.error ?? 'Something went wrong')
         return
       }
+
+      sessionStorage.removeItem(BOOKING_DRAFT_STORAGE_KEY)
 
       setDraft((prev) => ({
         ...prev,
@@ -1307,6 +1336,12 @@ useEffect(() => {
       />
 
       <div className="flex-1 overflow-y-auto no-scrollbar pb-2">
+         {submitError && (
+          <div className="mx-5 mt-3 px-4 py-3 bg-red-50 border border-red-200 rounded-[14px] flex items-start gap-2">
+            <i className="ti ti-alert-circle text-red-500 text-[16px] mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <p className="text-[13px] font-semibold text-red-600">{submitError}</p>
+          </div>
+        )}
         {step === 1 && (
           <ServiceStep
             selectedServiceId={draft.serviceId}

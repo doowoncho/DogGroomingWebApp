@@ -188,26 +188,91 @@ function ServiceRow({
   const gridCls = serviceGridCls 
 
   if (editing) {
-    return (
-      <div className={`${gridCls} items-start px-4 py-3 bg-gray-50 border-b border-border`}>
-        <div />
-        <input autoFocus value={draft.name_eng} onChange={e => setDraft(d => ({ ...d, name_eng: e.target.value }))} placeholder="Name (English)" className={`${inputCls} font-bold`} />
-        <input value={draft.name_kor} onChange={e => setDraft(d => ({ ...d, name_kor: e.target.value }))} placeholder="Name (Korean)" className={`${inputCls} font-bold`} />
-        <input autoFocus value={draft.desc_eng} onChange={e => setDraft(d => ({ ...d, desc_eng: e.target.value }))} placeholder="Description (English)" className={`${inputCls} font-bold`} />
-        <input value={draft.desc_kor} onChange={e => setDraft(d => ({ ...d, desc_kor: e.target.value }))} placeholder="Description (Korean)" className={`${inputCls} font-bold`} />
-        <input type="number" min={0} value={draft.sm_price} onChange={e => setDraft(d => ({ ...d, sm_price: parseFloat(e.target.value) || 0 }))} className={`${inputCls} font-bold`} />
-        <input type="number" min={0} value={draft.md_price} onChange={e => setDraft(d => ({ ...d, md_price: parseFloat(e.target.value) || 0 }))} className={`${inputCls} font-bold`} />
-        <input type="number" min={0} value={draft.lg_price} onChange={e => setDraft(d => ({ ...d, lg_price: parseFloat(e.target.value) || 0 }))} className={`${inputCls} font-bold`} />
-        <div className="flex flex-col pt-0.5">
-          <div className="flex items-center">
-            <button onClick={handleSave} disabled={saving} className={`${saveBtnCls} disabled:opacity-50`}>💾</button>
-            <button onClick={handleCancel} disabled={saving} className={cancelBtnCls} aria-label="cancel">✕</button>
-          </div>
-          {saveError && <p className="text-[10px] text-red-500">{saveError}</p>}
+  return (
+    <div className="px-4 py-4 border-b border-border space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-[10px] font-bold text-text-muted uppercase tracking-wide block mb-1">Name (English)</label>
+          <input
+            autoFocus
+            value={draft.name_eng}
+            onChange={e => setDraft(d => ({ ...d, name_eng: e.target.value }))}
+            placeholder="Name (English)"
+            className="w-full px-3 py-2.5 text-sm font-bold font-nunito border border-border rounded-lg outline-none focus:border-brand"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] font-bold text-text-muted uppercase tracking-wide block mb-1">Name (Korean)</label>
+          <input
+            value={draft.name_kor}
+            onChange={e => setDraft(d => ({ ...d, name_kor: e.target.value }))}
+            placeholder="Name (Korean)"
+            className="w-full px-3 py-2.5 text-sm font-bold font-nunito border border-border rounded-lg outline-none focus:border-brand"
+          />
         </div>
       </div>
-    )
-  }
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-[10px] font-bold text-text-muted uppercase tracking-wide block mb-1">Description (English)</label>
+          <textarea
+            rows={3}
+            value={draft.desc_eng}
+            onChange={e => setDraft(d => ({ ...d, desc_eng: e.target.value }))}
+            placeholder="Description (English)"
+            className="w-full px-3 py-2.5 text-sm font-nunito-sans border border-border rounded-lg outline-none focus:border-brand resize-y"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] font-bold text-text-muted uppercase tracking-wide block mb-1">Description (Korean)</label>
+          <textarea
+            rows={3}
+            value={draft.desc_kor}
+            onChange={e => setDraft(d => ({ ...d, desc_kor: e.target.value }))}
+            placeholder="Description (Korean)"
+            className="w-full px-3 py-2.5 text-sm font-nunito-sans border border-border rounded-lg outline-none focus:border-brand resize-y"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="text-[10px] font-bold text-text-muted uppercase tracking-wide block mb-1">Small</label>
+          <input
+            type="number" min={0}
+            value={draft.sm_price}
+            onChange={e => setDraft(d => ({ ...d, sm_price: parseFloat(e.target.value) || 0 }))}
+            className="w-full px-3 py-2.5 text-sm font-bold font-nunito border border-border rounded-lg outline-none focus:border-brand"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] font-bold text-text-muted uppercase tracking-wide block mb-1">Medium</label>
+          <input
+            type="number" min={0}
+            value={draft.md_price}
+            onChange={e => setDraft(d => ({ ...d, md_price: parseFloat(e.target.value) || 0 }))}
+            className="w-full px-3 py-2.5 text-sm font-bold font-nunito border border-border rounded-lg outline-none focus:border-brand"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] font-bold text-text-muted uppercase tracking-wide block mb-1">Large</label>
+          <input
+            type="number" min={0}
+            value={draft.lg_price}
+            onChange={e => setDraft(d => ({ ...d, lg_price: parseFloat(e.target.value) || 0 }))}
+            className="w-full px-3 py-2.5 text-sm font-bold font-nunito border border-border rounded-lg outline-none focus:border-brand"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <button onClick={handleSave} disabled={saving} className={`${saveBtnCls} disabled:opacity-50`}>💾 Save</button>
+        <button onClick={handleCancel} disabled={saving} className={cancelBtnCls} aria-label="cancel">✕ Cancel</button>
+        {saveError && <p className="text-[11px] text-red-500 ml-2">{saveError}</p>}
+      </div>
+    </div>
+  )
+}
 
   return (
   <div

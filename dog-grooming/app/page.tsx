@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/components/LanguageContext'
 import { translations } from '@/lib/translations'
 import BreedAutoComplete from '@/components/ui/BreedAutoComplete'
+import { getRawServices } from '@/lib/hooks/useServices'
 
 const DOG_SIZES = [
   { value: 'S', label: 'S', lbs: '0–25 lbs', kg: '0–11 kg' },
@@ -15,7 +16,7 @@ const DOG_SIZES = [
 type DogSize = typeof DOG_SIZES[number]['value']
 
 export default function HomePage() {
-  const { language, setLanguage } = useLanguage()
+  const { language } = useLanguage()
   const t = translations[language]
   const router = useRouter()
 
@@ -24,6 +25,11 @@ export default function HomePage() {
   const [breed, setBreed] = useState('')
   const [nameFocused, setNameFocused] = useState(false)
   const [breedFocused, setBreedFocused] = useState(false)
+
+  useEffect(() => {
+    // Reset breed when size changes
+    getRawServices()
+  }, [])
 
   const isValid = dogName.trim().length > 0 && size !== null
 
