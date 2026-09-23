@@ -48,52 +48,11 @@ export default function HomePage() {
   const breedActive = breedFocused || breed.length > 0
 
   return (
-    <div className="page-full-bleed relative">
-      {/* Main two-column layout */}
-      <div className="relative max-w-6xl mx-auto px-8 lg:px-16 lg:pt-13 pb-20 items-center">
-      {/* <div className="relative max-w-6xl mx-auto px-8 lg:px-16 lg:pt-13 pb-20 grid grid-cols-1 lg:grid-cols-2 lg:gap-16 items-center"> */}
-        {/* Left column — pitch */}
-
-         {/*
-        <div className="my-2">
-          <p className="text-[11px] font-bold tracking-[0.09em] uppercase text-brand mb-5 flex items-center gap-2 hidden md:block">
-            <span className="w-[14px] h-px bg-brand inline-block" />
-            One dog at a time
-          </p>
-
-          <h1
-            className="font-extrabold text-text-primary leading-[1.1] mb-6"
-            style={{
-              fontFamily: 'var(--font-fraunces, serif)',
-              fontSize: 'clamp(34px, 4.6vw, 52px)',
-            }}
-          >
-            {language === 'en' ? (
-              <>A calmer, more <span className="text-brand italic font-medium">private</span> way to get groomed.</>
-            ) : (
-              <>더 <span className="text-brand italic font-medium">편안한</span>, 프라이빗한 그루밍 경험.</>
-            )}
-          </h1>
-
-          <p className="text-[15px] text-text-muted leading-relaxed mb-7 max-w-md hidden md:block">
-            {language === 'en'
-              ? 'Just your dog, a quiet room, and undivided attention from start to finish.'
-              : '조용한 공간에서 반려견에게 처음부터 끝까지 온전한 관심을 드립니다.'}
-          </p>
-
-          <div className="inline-flex items-center gap-1.5 bg-white px-4 py-2 rounded-full border border-black/[0.06] shadow-sm">
-            <i className="ti ti-map-pin text-[14px] text-brand" aria-hidden="true" />
-            <p className="text-[13px] text-brand font-bold">
-              Tuscany, NW Calgary
-            </p>
-          </div>
-        </div>
-
-          */}
-        {/* Right column — booking card */}
-
-        <div className="relative">
+    <div className="page-full-bleed relative min-h-screen flex flex-col">
+    <div className="flex-1 flex max-w-6xl mx-auto px-8 lg:px-16 w-full">
+        <div className="relative w-full lg:my-15 sm:my-10 my-6">
           <div className="relative rounded-[24px] bg-white border border-black/[0.06] shadow-[0_20px_45px_-20px_rgba(0,0,0,0.18)] min-h-[580px] max-w-[530px] mx-auto">
+            {/* ...card content unchanged... */}
             <div className="p-10">
               <h3
                 className="text-center font-bold text-[22px] text-text-primary mb-1"
