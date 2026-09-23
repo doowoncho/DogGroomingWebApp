@@ -6,6 +6,7 @@ import { useLanguage } from '@/components/LanguageContext'
 import { translations } from '@/lib/translations'
 import BreedAutoComplete from '@/components/ui/BreedAutoComplete'
 import { getRawServices } from '@/lib/hooks/useServices'
+import ContactFooter from '@/components/layout/ContactFooter'
 
 const DOG_SIZES = [
   { value: 'S', label: 'S', lbs: '0–25 lbs', kg: '0–11 kg' },
@@ -190,6 +191,8 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+      <ContactFooter></ContactFooter>
     </div>
+
   )
 }

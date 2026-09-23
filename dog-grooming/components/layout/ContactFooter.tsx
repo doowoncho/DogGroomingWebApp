@@ -10,7 +10,7 @@ export default function ContactFooter() {
   const { language } = useLanguage()
 
   return (
-    <div className="flex items-center justify-center gap-8 px-4 py-2.5 border-t border-border bg-white">
+    <div className="flex items-center justify-center gap-8 px-4 py-1">
 
       <a
         href={INSTAGRAM_URL}

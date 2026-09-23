@@ -51,7 +51,7 @@ export default function RootLayout({
             </div>
 
             {/* <BottomNav /> */}
-            <ContactFooter></ContactFooter>
+            {/* <ContactFooter></ContactFooter> */}
           </div>
         </LanguageProvider>
       </body>
