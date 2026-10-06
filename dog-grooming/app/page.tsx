@@ -148,7 +148,6 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-      <ContactFooter></ContactFooter>
         </div>
       </div>
     </div>
