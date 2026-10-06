@@ -10,8 +10,7 @@ export default function ContactFooter() {
   const { language } = useLanguage()
 
   return (
-    <div className="flex items-center justify-center gap-8 px-4 py-4">
-
+    <div className="flex items-center justify-center gap-8 px-4">
       <a
         href={INSTAGRAM_URL}
         target="_blank"
@@ -39,6 +38,11 @@ export default function ContactFooter() {
         <i className="ti ti-mail text-[20px]" aria-hidden="true" />
         {CONTACT_EMAIL}
       </a>
+
+    <br></br>
+    <br></br>
+    <br></br>
+    <br></br>
 
     </div>
   )

@@ -50,7 +50,7 @@ export default function HomePage() {
   return (
     <div className="page-full-bleed relative min-h-screen flex flex-col">
     <div className="flex-1 flex max-w-6xl mx-auto px-8 lg:px-16 w-full">
-        <div className="relative w-full lg:my-15 sm:my-10 my-6">
+        <div className="relative w-full lg:my-15 sm:my-10 my-4">
           <div className="relative rounded-[24px] bg-white border border-black/[0.06] shadow-[0_20px_45px_-20px_rgba(0,0,0,0.18)] min-h-[580px] max-w-[530px] mx-auto">
             {/* ...card content unchanged... */}
             <div className="p-10">
@@ -148,9 +148,9 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+      <ContactFooter></ContactFooter>
         </div>
       </div>
-      <ContactFooter></ContactFooter>
     </div>
 
   )
