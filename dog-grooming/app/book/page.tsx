@@ -498,32 +498,67 @@ function ConfirmStep({
 }
 
 // ─── Confirmation page ────────────────────────────────────────────────────────
+function DetailRow({ icon, label, value }: { icon: string; label: string; value: string | null | undefined }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border last:border-none">
+      <i className={`ti ${icon} text-[20px] text-text-muted flex-shrink-0`} aria-hidden="true" />
+      <span className="text-[14px] font-semibold text-text-secondary">{label}</span>
+      <span className={cn('ml-auto text-[15px] font-bold text-right truncate', value ? 'text-text-primary' : 'text-text-muted font-semibold')}>
+        {value || '—'}
+      </span>
+    </div>
+  )
+}
+
 function ConfirmationPage({
   draft,
   selectedService,
   onUpdate,
+  language,
   t,
 }: {
   draft: BookingDraft
   selectedService: Service | null
   onUpdate: (fields: Partial<BookingDraft>) => void
+  language: string
   t: any
 }) {
   const [editing, setEditing] = useState(false)
   const [dogName, setDogName] = useState(draft.dogName)
-  const [breed, setBreed] = useState(draft.breed ?? '')   // ← add this
+  const [breed, setBreed] = useState(draft.breed ?? '')
   const [phone, setPhone] = useState(draft.phone)
   const [kakaoid, setKakaoid] = useState(draft.kakaoid ?? '')
   const [notes, setNotes] = useState(draft.notes)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [justSaved, setJustSaved] = useState(false)
 
   const hasChanges =
     dogName.trim() !== draft.dogName.trim() ||
-    breed.trim() !== (draft.breed ?? '').trim() ||        // ← add this
+    breed.trim() !== (draft.breed ?? '').trim() ||
     phone.trim() !== draft.phone.trim() ||
     kakaoid.trim() !== (draft.kakaoid ?? '').trim() ||
     notes.trim() !== draft.notes.trim()
+  const canSave = hasChanges && dogName.trim().length > 0 && phone.trim().length > 0 && !saving
+
+  function openEditor() {
+    setDogName(draft.dogName)
+    setBreed(draft.breed ?? '')
+    setPhone(draft.phone)
+    setKakaoid(draft.kakaoid ?? '')
+    setNotes(draft.notes)
+    setSaveError(null)
+    setJustSaved(false)
+    setEditing(true)
+  }
+
+  // Close the sheet with Escape, like any other dialog.
+  useEffect(() => {
+    if (!editing) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setEditing(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [editing])
 
   async function handleSave() {
     setSaving(true)
@@ -532,184 +567,171 @@ function ConfirmationPage({
       const res = await fetch(`/api/bookings/${draft.bookingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dogName, breed, phone, kakaoid, notes }), // ← add breed
+        body: JSON.stringify({ dogName, breed, phone, kakaoid, notes }),
       })
-      const json = await res.json()
+      const json = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setSaveError(json.error ?? 'Something went wrong')
+        setSaveError(json.error ?? t.booking.somethingWentWrong)
         return
       }
-
-      onUpdate({ dogName, breed, phone, kakaoid, notes }) // ← add breed
+      onUpdate({ dogName: dogName.trim(), breed: breed.trim(), phone: phone.trim(), kakaoid: kakaoid.trim(), notes: notes.trim() })
       setEditing(false)
+      setJustSaved(true)
     } catch {
-      setSaveError('Network error, please try again')
+      setSaveError(t.booking.networkError)
     } finally {
       setSaving(false)
     }
   }
 
- return (
-  <div className='app-shell'>
-  <div className="flex flex-col items-center justify-center px-5 pt-[max(env(safe-area-inset-top),1.5rem)] pb-safe text-center">
-    <div className="w-16 h-16 bg-brand-pale rounded-full flex items-center justify-center mb-4">
-      <i className="ti ti-circle-check text-brand text-[32px]" aria-hidden="true" />
-    </div>
-    <h2 className="font-nunito font-extrabold text-2xl text-text-primary mb-2">
-      {t.booking.bookingReceivedMessage}
-    </h2>
+  // "Wed, Dec 2" + "10:00 AM", in the visitor's language.
+  const { date, time } = splitDateTime(draft.dateTime)
+  const when = date && time ? new Date(`${date}T${time}`) : null
+  const locale = language === 'ko' ? 'ko-KR' : 'en-US'
+  const dayLabel = when?.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' })
+  const timeLabel = when?.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })
 
-    <div className="w-full bg-white rounded-[20px] border border-border p-5 mb-3">
-      <div className="space-y-3">
+  const fieldCls =
+    'w-full px-4 py-3.5 border border-border rounded-[14px] text-base font-nunito-sans text-text-primary bg-white outline-none focus:border-brand'
+  const labelCls = 'block text-[13px] font-bold text-text-secondary uppercase tracking-wide mb-1.5'
 
-        {/* Locked field */}
-        <div className="flex justify-between items-center pb-3 border-b border-border">
-          <span className="text-[14px] font-semibold text-text-muted flex items-center gap-1">
-            {t.booking.service}
-            {editing && <i className="ti ti-lock text-[12px] text-text-muted" aria-hidden="true" />}
-          </span>
-          <span className="text-[15px] font-bold text-text-primary text-right">{selectedService?.name ?? '—'}</span>
-        </div>
-
-        {/* Locked field */}
-        <div className="flex justify-between items-center pb-3 border-b border-border">
-          <span className="text-[14px] font-semibold text-text-muted flex items-center gap-1">
-            {t.booking.date}
-            {editing && <i className="ti ti-lock text-[12px] text-text-muted" aria-hidden="true" />}
-          </span>
-          <span className="text-[15px] font-bold text-text-primary text-right">{formatDateTimeDisplay(draft.dateTime)}</span>
-        </div>
-
-        {editing && (
-          <p className="text-[11px] text-text-muted -mt-1 pb-1 text-left">
-            {t.booking.lockedFieldsNote}
-          </p>
-        )}
-
-        {/* Editable fields */}
-        <div className="flex justify-between items-center pb-3 border-b border-border">
-          <span className="text-[14px] font-semibold text-text-muted">{t.booking.dog}</span>
-          {editing ? (
-            <input
-              value={dogName}
-              onChange={(e) => setDogName(e.target.value)}
-              className="text-base font-bold text-text-primary text-right border-b border-brand outline-none w-1/2 py-1"
-            />
-          ) : (
-            <span className="text-[15px] font-bold text-text-primary text-right">{draft.dogName || '—'}</span>
-          )}
-        </div>
-
-        {/* Breed — add this block */}
-        <div className="flex justify-between items-center pb-3 border-b border-border">
-          <span className="text-[14px] font-semibold text-text-muted">{t.booking.dogBreed}</span>
-          {editing ? (
-
-            <BreedAutoComplete 
-              breed={breed}
-              onChange={(e) => setBreed(e)}
-              t={t}
-              editMode={true}
-            />
-          ) : (
-            <span className="text-[15px] font-bold text-text-primary text-right">{draft.breed || '—'}</span>
-          )}
-        </div>
-
-        <div className="flex justify-between items-center pb-3 border-b border-border">
-          <span className="text-[14px] font-semibold text-text-muted">{t.booking.phone}</span>
-          {editing ? (
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/[^\d+\-()\s]/g, ''))}
-              className="text-base font-bold text-text-primary text-right border-b border-brand outline-none w-1/2 py-1"
-            />
-          ) : (
-            <span className="text-[15px] font-bold text-text-primary text-right">{draft.phone ?? '—'}</span>
-          )}
-        </div>
-
-        <div className="flex justify-between items-center pb-3 border-b border-border">
-          <span className="text-[14px] font-semibold text-text-muted">KakaoId</span>
-          {editing ? (
-            <input
-              value={kakaoid}
-              onChange={(e) => setKakaoid(e.target.value)}
-              className="text-base font-bold text-text-primary text-right border-b border-brand outline-none w-1/2 py-1"
-            />
-          ) : (
-            <span className="text-[15px] font-bold text-text-primary text-right">{draft.kakaoid ?? '—'}</span>
-          )}
-        </div>
-
-        {editing && (
-          <div className="pb-1 text-left">
-            <label className="block text-[13px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
-              {t.booking.notesForGroomer}
-            </label>
-            <textarea
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2.5 border border-border rounded-[12px] text-base font-nunito-sans text-text-primary bg-white outline-none focus:border-brand resize-none"
-            />
+  return (
+    <div className="app-shell flex flex-col min-h-full">
+      <div className="flex-1 px-5 pt-[max(env(safe-area-inset-top),1.25rem)] pb-4">
+        {/* Header */}
+        <div className="flex flex-col items-center text-center pt-2 pb-6">
+          <div className="w-16 h-16 bg-brand-pale rounded-full flex items-center justify-center mb-3">
+            <i className="ti ti-circle-check text-brand text-[34px]" aria-hidden="true" />
           </div>
-        )}
-
-        <div className="flex justify-between pb-3 border-b border-border">
-          <span className="text-[13px] font-semibold">{t.booking.total}</span>
-          <span className="font-nunito font-extrabold text-[18px] text-brand">${selectedService?.price}</span>
+          <h2 className="font-nunito font-extrabold text-[24px] text-text-primary">{t.booking.requestSent}</h2>
+          <p className="text-[15px] text-text-secondary mt-1 max-w-[300px]">{t.booking.requestSentBody}</p>
         </div>
 
+        {/* Appointment */}
+        <div className="bg-white rounded-[20px] border border-border overflow-hidden">
+          <div className="px-4 pt-4 pb-3.5">
+            <span className="inline-flex items-center gap-1 text-[12px] font-bold text-amber-800 bg-amber-50 ring-1 ring-inset ring-amber-200 rounded-full px-2.5 py-1">
+              <i className="ti ti-clock-hour-4 text-[13px]" aria-hidden="true" /> {t.booking.awaitingConfirmation}
+            </span>
+            <p className="font-nunito font-extrabold text-[22px] leading-tight text-text-primary mt-2.5">{dayLabel ?? '—'}</p>
+            <p className="font-nunito font-bold text-[17px] text-text-secondary">{timeLabel}</p>
+          </div>
+          <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-t border-border bg-surface/60">
+            <span className="flex items-center gap-2 min-w-0">
+              <i className={`ti ${selectedService?.icon ?? 'ti-scissors'} text-[20px] text-brand-light`} aria-hidden="true" />
+              <span className="text-[15px] font-bold text-text-primary truncate">{selectedService?.name ?? '—'}</span>
+            </span>
+            <span className="font-nunito font-extrabold text-[18px] text-brand">${selectedService?.price ?? '—'}</span>
+          </div>
+        </div>
+        <p className="text-[13px] text-text-muted mt-2 px-1 flex items-start gap-1.5">
+          <i className="ti ti-message-circle text-[16px] mt-px" aria-hidden="true" />
+          {t.booking.changeTimeNote}
+        </p>
+
+        {/* Details */}
+        <div className="flex items-center justify-between mt-6 mb-2 px-1">
+          <h3 className="font-nunito font-extrabold text-[17px] text-text-primary">{t.booking.yourDetails}</h3>
+          {justSaved ? (
+            <span className="inline-flex items-center gap-1 text-[14px] font-bold text-green-700">
+              <i className="ti ti-check" aria-hidden="true" /> {t.booking.saved}
+            </span>
+          ) : null}
+        </div>
+        <div className="bg-white rounded-[20px] border border-border overflow-hidden">
+          <DetailRow icon="ti-dog" label={t.booking.dog} value={draft.dogName} />
+          <DetailRow icon="ti-paw" label={t.booking.dogBreed} value={draft.breed} />
+          <DetailRow icon="ti-phone" label={t.booking.phone} value={draft.phone} />
+          <DetailRow icon="ti-message-circle" label="KakaoTalk" value={draft.kakaoid} />
+          {draft.notes?.trim() && (
+            <div className="px-4 py-3.5 border-t border-border">
+              <p className="text-[14px] font-semibold text-text-secondary mb-1">{t.booking.notesForGroomer}</p>
+              <p className="text-[15px] text-text-primary whitespace-pre-wrap">{draft.notes}</p>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={openEditor}
+            className="w-full flex items-center justify-center gap-1.5 min-h-[52px] border-t border-border text-[15px] font-bold font-nunito text-brand active:bg-brand-muted transition-colors"
+          >
+            <i className="ti ti-pencil text-[18px]" aria-hidden="true" /> {t.booking.editDetails}
+          </button>
+        </div>
       </div>
-    </div>
 
-    {saveError && <p className="text-red-500 text-[12px] mb-3">{saveError}</p>}
+      {/* Done */}
+      <div data-bottom-bar className="sticky bottom-0 z-30 px-5 pt-3 pb-safe bg-surface/95 backdrop-blur border-t border-border">
+        <Link
+          href="/"
+          className="w-full bg-brand text-white font-nunito font-bold text-[17px] rounded-full py-[18px] flex items-center justify-center transition active:scale-[0.98]"
+        >
+          {t.booking.done}
+        </Link>
+      </div>
 
-    <div className="w-full space-y-3">
-      {editing ? (
-        <>
-          <button
-            onClick={handleSave}
-            disabled={saving || !hasChanges}
-            className="w-full bg-brand text-white font-nunito font-bold text-base rounded-full py-4 disabled:opacity-40 transition-opacity active:opacity-80"
-          >
-            {saving ? '...' : t.booking.saveChanges}
-          </button>
-          <button
-            onClick={() => {
-              setDogName(draft.dogName)
-              setPhone(draft.phone)
-              setKakaoid(draft.kakaoid ?? '')
-              setNotes(draft.notes)
-              setEditing(false)
-              setBreed(draft.breed ?? '')
-            }}
-            className="w-full bg-white text-text-secondary font-nunito font-bold text-base rounded-full py-4 border-2 border-border flex items-center justify-center transition-opacity active:opacity-80"
-          >
-            {t.booking.cancel}
-          </button>
-        </>
-      ) : (
-        <>
-          <button
-            onClick={() => setEditing(true)}
-            className="w-full bg-white text-brand font-nunito font-bold text-base rounded-full py-4 border-2 border-brand flex items-center justify-center transition-opacity active:opacity-80"
-          >
-            {t.booking.editRequest}
-          </button>
-          <Link
-            href="/"
-            className="w-full bg-brand text-white font-nunito font-bold text-base rounded-full py-4 flex items-center justify-center transition-opacity active:opacity-80"
-          >
-            {t.booking.continue}
-          </Link>
-        </>
+      {/* Edit sheet */}
+      {editing && (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={t.booking.editDetails}>
+          <div className="absolute inset-0 bg-black/40" onClick={() => !saving && setEditing(false)} />
+          <div className="absolute inset-x-0 bottom-0 max-h-[92dvh] md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[440px] md:max-h-[85dvh] rounded-t-3xl md:rounded-3xl bg-white shadow-2xl flex flex-col">
+            <div className="md:hidden flex justify-center pt-2">
+              <span className="w-10 h-1.5 rounded-full bg-gray-200" />
+            </div>
+            <div className="flex items-center justify-between gap-3 px-5 pt-3 pb-3 border-b border-border">
+              <h2 className="font-nunito font-extrabold text-[19px] text-text-primary">{t.booking.editDetails}</h2>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                disabled={saving}
+                className="w-11 h-11 -mr-2 rounded-full flex items-center justify-center text-text-secondary active:bg-surface-secondary"
+                aria-label={t.booking.cancel}
+              >
+                <i className="ti ti-x text-[22px]" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
+              <div>
+                <label htmlFor="edit-dog" className={labelCls}>{t.booking.dogName}</label>
+                <input id="edit-dog" value={dogName} onChange={(e) => setDogName(e.target.value)}
+                  autoComplete="off" autoCapitalize="words" enterKeyHint="next" className={fieldCls} />
+              </div>
+              <div className="relative">
+                <BreedAutoComplete breed={breed} onChange={setBreed} t={t} />
+              </div>
+              <div>
+                <label htmlFor="edit-phone" className={labelCls}>{t.booking.phone}</label>
+                <input id="edit-phone" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next"
+                  value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^\d+\-()\s]/g, ''))} className={fieldCls} />
+              </div>
+              <div>
+                <label htmlFor="edit-kakao" className={labelCls}>KakaoTalk ID</label>
+                <input id="edit-kakao" value={kakaoid} onChange={(e) => setKakaoid(e.target.value)}
+                  autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} className={fieldCls} />
+              </div>
+              <div>
+                <label htmlFor="edit-notes" className={labelCls}>{t.booking.notesForGroomer}</label>
+                <textarea id="edit-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)}
+                  placeholder={t.booking.anySpecialRequests} className={`${fieldCls} resize-none`} />
+              </div>
+            </div>
+
+            <div className="border-t border-border px-5 pt-3 pb-safe">
+              {saveError && <p className="text-[13px] text-red-500 text-center mb-2" role="alert">{saveError}</p>}
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!canSave}
+                className="w-full bg-brand text-white font-nunito font-bold text-[17px] rounded-full py-[16px] disabled:opacity-40 transition active:scale-[0.98]"
+              >
+                {saving ? '…' : t.booking.saveChanges}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
-  </div>
-</div>
-)
+  )
 }
 
 // ─── Account creation page ────────────────────────────────────────────────────
@@ -1142,6 +1164,7 @@ useEffect(() => {
           draft={draft}
           selectedService={selectedService}
           onUpdate={(fields) => updateDraft(fields)}
+          language={language}
           t={t}
         />
       </div>
