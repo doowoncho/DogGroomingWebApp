@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/requireAdmin";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 
@@ -7,6 +8,9 @@ function durationToSlots(duration: number) {
 }
 
 export async function PATCH(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
 
     let body: any
@@ -54,6 +58,9 @@ export async function PATCH(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     let body: any
     try {
@@ -118,6 +125,9 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')

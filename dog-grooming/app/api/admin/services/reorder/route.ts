@@ -1,6 +1,10 @@
+import { requireAdmin } from "@/lib/requireAdmin";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function PATCH(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
 
 const supabase = createAdminClient();
   const { order }: { order: { id: number; order: number }[] } = await req.json()

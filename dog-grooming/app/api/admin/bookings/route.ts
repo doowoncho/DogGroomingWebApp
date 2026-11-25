@@ -1,7 +1,11 @@
+import { requireAdmin } from "@/lib/requireAdmin";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function GET() {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
@@ -19,6 +23,9 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
    const supabase = createAdminClient();
   try {
     let body: any
@@ -61,6 +68,9 @@ export async function PATCH(req: Request) {
 const CLEARABLE_STATUSES = ['completed', 'cancelled', 'declined']
 
 export async function DELETE(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   const supabase = createAdminClient();
   try {
     const { searchParams } = new URL(req.url)

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Nunito, Nunito_Sans } from 'next/font/google'
 import './globals.css'
 
@@ -23,6 +23,22 @@ const nunitoSans = Nunito_Sans({
 export const metadata: Metadata = {
   title: 'Mung Mung Grooming',
   description: 'Private dog grooming.',
+  applicationName: 'Mung Mung Grooming',
+  appleWebApp: {
+    capable: true,
+    title: 'Mung Mung',
+    statusBarStyle: 'default',
+  },
+  formatDetection: { telephone: false },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#faf7f4',
+  // Let the on-screen keyboard shrink the layout so sticky actions stay visible.
+  interactiveWidget: 'resizes-content',
 }
 
 export default function RootLayout({
@@ -43,12 +59,12 @@ export default function RootLayout({
         className={`${nunito.variable} ${nunitoSans.variable} font-nunito-sans bg-surface antialiased`}
       >
         <LanguageProvider>
-          <div className="flex flex-col h-dvh">
+          <div className="app-frame flex flex-col h-dvh">
             <TopBar />
 
-            <div className="flex-1 overflow-y-auto no-scrollbar">
+            <main id="app-scroll" className="flex-1 overflow-y-auto overscroll-contain no-scrollbar">
               {children}
-            </div>
+            </main>
 
             {/* <BottomNav /> */}
             <ContactFooter></ContactFooter>

@@ -3,7 +3,7 @@ import { createAdminClient } from '@/utils/supabase/admin'
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { email, password, phone, dogName, breed, bookingId, fullname } = body
+    const { email, password, phone, dogName, breed, bookingId } = body
 
     const supabase = createAdminClient() // also: no need to await, it's not async
     const { data: userData, error: authError } =
@@ -20,9 +20,11 @@ export async function POST(req: Request) {
 
     const user = userData.user
 
+    // profiles has no full_name column (inserting it made every sign-up fail).
     const { error: profileError } = await supabase.from('profiles').insert({
       user_id: user.id,
-      full_name: fullname,
+      email,
+      is_admin: false,
     })
 
     if (profileError) {
@@ -30,8 +32,15 @@ export async function POST(req: Request) {
       return Response.json({ error: profileError.message }, { status: 400 })
     }
 
-    if (bookingId) {
-      await supabase.from('bookings').update({ user_id: user.id }).eq('id', bookingId)
+    // Only claim the booking just made with this same email, and only if it
+    // isn't already attached to an account.
+    if (bookingId && typeof email === 'string') {
+      await supabase
+        .from('bookings')
+        .update({ user_id: user.id })
+        .eq('id', bookingId)
+        .ilike('email', email)
+        .is('user_id', null)
     }
 
     if(dogName){

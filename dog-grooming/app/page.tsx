@@ -6,7 +6,6 @@ import { useLanguage } from '@/components/LanguageContext'
 import { translations } from '@/lib/translations'
 import BreedAutoComplete from '@/components/ui/BreedAutoComplete'
 import { getRawServices } from '@/lib/hooks/useServices'
-import ContactFooter from '@/components/layout/ContactFooter'
 
 const DOG_SIZES = [
   { value: 'S', label: 'S', lbs: '0–25 lbs', kg: '0–11 kg' },
@@ -48,29 +47,29 @@ export default function HomePage() {
   const breedActive = breedFocused || breed.length > 0
 
   return (
-    <div className="page-full-bleed relative min-h-screen flex flex-col">
-    <div className="flex-1 flex max-w-6xl mx-auto px-8 lg:px-16 w-full">
-        <div className="relative w-full lg:my-15 sm:my-10 my-4">
-          <div className="relative rounded-[24px] bg-white border border-black/[0.06] shadow-[0_20px_45px_-20px_rgba(0,0,0,0.18)] min-h-[580px] max-w-[530px] mx-auto">
+    <div className="page-full-bleed relative min-h-full flex flex-col">
+    <div className="flex-1 flex max-w-6xl mx-auto px-4 sm:px-8 lg:px-16 w-full">
+        <div className="relative w-full flex flex-col sm:block lg:my-15 sm:my-10 mt-2 mb-3">
+          <div className="relative flex flex-1 flex-col w-full sm:block rounded-[24px] bg-white border border-black/[0.06] shadow-[0_20px_45px_-20px_rgba(0,0,0,0.18)] sm:min-h-[580px] max-w-[530px] mx-auto">
             {/* ...card content unchanged... */}
-            <div className="p-10">
+            <div className="flex flex-1 flex-col sm:block px-5 pt-7 pb-5 sm:p-10">
               <h3
-                className="text-center font-bold text-[22px] text-text-primary mb-1"
+                className="text-center font-nunito font-extrabold text-[24px] text-text-primary mb-1"
               >
                 {language === 'en'
                   ? 'Book your first session'
                   : '오늘 첫 세션을 예약하세요'}
               </h3>
-              <p className="text-center text-[13px] text-text-muted mb-7">
+              <p className="text-center text-[15px] text-text-muted mb-7">
                 {language === 'en' ? 'Takes less than a minute' : '1분이면 충분해요'}
               </p>
 
-              <div className="space-y-5">
+              <div className="flex flex-1 flex-col gap-5 sm:block sm:space-y-5">
                 {/* Dog name */}
                 <div>
                   <label
                     htmlFor="dogName"
-                    className="block text-[11px] font-bold text-text-muted mb-2 tracking-wide uppercase"
+                    className="block text-[12px] font-bold text-text-muted mb-2 tracking-wide uppercase"
                   >
                     {language === 'en' ? "Dog's name" : '반려견 이름'}
                   </label>
@@ -81,14 +80,17 @@ export default function HomePage() {
                     onFocus={() => setNameFocused(true)}
                     onBlur={() => setNameFocused(false)}
                     onChange={(e) => setDogName(e.target.value)}
+                    autoComplete="off"
+                    autoCapitalize="words"
+                    enterKeyHint="next"
                     placeholder={language === 'en' ? 'e.g. Curi' : '예: 큐리'}
-                    className="w-full rounded-[14px] border-[1.5px] border-black/[0.08] bg-surface-secondary px-4 py-3.5 text-[14px] font-medium text-text-primary outline-none transition-colors focus:border-brand focus:bg-white placeholder:text-black/30"
+                    className="w-full rounded-[14px] border-[1.5px] border-black/[0.08] bg-surface-secondary px-4 py-4 text-base font-medium text-text-primary outline-none transition-colors focus:border-brand focus:bg-white placeholder:text-black/30"
                   />
                 </div>
 
                 {/* Dog size */}
                 <div>
-                  <p className="text-[11px] font-bold text-text-muted mb-2 tracking-wide uppercase">
+                  <p className="text-[12px] font-bold text-text-muted mb-2 tracking-wide uppercase">
                     {language === 'en' ? 'Size' : '크기'}
                   </p>
                   <div className="grid grid-cols-3 gap-2.5">
@@ -99,21 +101,22 @@ export default function HomePage() {
                           key={s.value}
                           type="button"
                           onClick={() => setSize(s.value)}
-                          className={`flex flex-col items-center rounded-[14px] px-2 py-4 text-center border-[1.5px] transition-colors ${
+                          aria-pressed={selected}
+                          className={`flex flex-col items-center rounded-[16px] px-2 py-4 active:scale-[0.97] text-center border-[1.5px] transition-colors ${
                             selected
                               ? 'bg-brand border-brand'
                               : 'bg-surface-secondary border-black/[0.08] hover:border-brand/40'
                           }`}
                         >
                           <i
-                            className={`ti ti-paw text-[20px] mb-1.5 ${selected ? 'text-white' : 'text-text-primary/70'}`}
+                            className={`ti ti-paw text-[22px] mb-1.5 ${selected ? 'text-white' : 'text-text-primary/70'}`}
                             aria-hidden="true"
                           />
-                          <div className={`font-extrabold text-[16px] ${selected ? 'text-white' : 'text-text-primary'}`}
+                          <div className={`font-extrabold text-[18px] ${selected ? 'text-white' : 'text-text-primary'}`}
                                style={{ fontFamily: 'var(--font-fraunces, serif)' }}>
                             {s.label}
                           </div>
-                          <div className={`text-[10px] font-medium leading-snug ${selected ? 'text-white/80' : 'text-text-muted'}`}>
+                          <div className={`text-[12px] font-medium leading-snug ${selected ? 'text-white/80' : 'text-text-muted'}`}>
                             {s.lbs}<br />{s.kg}
                           </div>
                         </button>
@@ -137,7 +140,7 @@ export default function HomePage() {
                   type="button"
                   onClick={handleBook}
                   disabled={!isValid}
-                  className={`w-full font-bold text-[14px] tracking-wide px-4 py-4 rounded-full transition-all ${
+                  className={`mt-auto w-full font-nunito font-bold text-[17px] tracking-wide px-4 py-[18px] rounded-full transition-all ${
                     isValid
                       ? 'bg-brand text-white shadow-[0_10px_24px_-10px_rgba(0,0,0,0.35)] hover:brightness-95 active:scale-[0.99]'
                       : 'bg-[#EFE9DC] text-[#B3AC9C] cursor-not-allowed'

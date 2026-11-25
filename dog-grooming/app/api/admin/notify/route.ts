@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/requireAdmin";
 import { NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
 
@@ -59,6 +60,9 @@ const MESSAGES: Record<string, (dogName: string, date: string, time: string, pho
 }
 
 export async function POST(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   try {
     const { email, dog_name, date, time, status, phone, kakaoid } = await req.json()
 
