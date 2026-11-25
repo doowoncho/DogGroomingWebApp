@@ -36,12 +36,15 @@ const filteredBreeds = DOG_BREEDS.filter((breed) =>
        <input
           type="text"
           placeholder={t.booking.searchBreed}
+          autoComplete="off"
+          autoCapitalize="words"
+          enterKeyHint="done"
           value={breedQuery}
           onChange={(e) => {
             setBreedQuery(e.target.value)
             onChange(e.target.value)
           }}
-          className={`${styles[variant]} focus:bg-white w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary outline-none focus:border-brand`}
+          className={`${styles[variant]} focus:bg-white w-full px-4 py-3.5 border border-border rounded-[14px] text-base font-nunito-sans text-text-primary outline-none focus:border-brand`}
         />
         {breedQuery.length > 0 && filteredBreeds.length > 0 && (
           <div className="absolute left-5 right-5 mt-1 bg-white border border-border rounded-[14px] shadow-lg z-999">
@@ -53,7 +56,7 @@ const filteredBreeds = DOG_BREEDS.filter((breed) =>
                   setBreedQuery(breed)
                   onChange(breed)
                 }}
-                className="w-full text-left px-4 py-3 text-[14px] font-medium text-text-primary hover:bg-surface-secondary transition-colors"
+                className="w-full text-left px-4 py-3.5 text-base font-medium text-text-primary hover:bg-surface-secondary active:bg-surface-secondary transition-colors first:rounded-t-[14px] last:rounded-b-[14px]"
               >
                 {breed}
               </button>

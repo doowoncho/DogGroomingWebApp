@@ -1,24 +1,28 @@
 'use client'
 
-import { useLanguage } from '@/components/LanguageContext'
+import { usePathname } from 'next/navigation'
 
 const INSTAGRAM_URL = 'https://instagram.com/'
 const KAKAOTALK_URL = 'https://pf.kakao.com/'
 const CONTACT_EMAIL = 'mungmung.grooming@gmail.com'
 
+// The booking flow pins its own action bar to the bottom of the screen.
+const HIDDEN_ON = ['/book']
+
 export default function ContactFooter() {
-  const { language } = useLanguage()
+  const pathname = usePathname()
+  if (HIDDEN_ON.some((p) => pathname?.startsWith(p))) return null
 
   return (
-    <div className="flex items-center justify-center gap-5">
+    <footer className="pb-safe pt-1 flex items-center justify-center gap-1 bg-surface">
       <a
         href={INSTAGRAM_URL}
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Instagram"
-        className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-brand transition-colors"
+        className="w-11 h-11 flex items-center justify-center rounded-full text-text-muted hover:text-brand active:bg-surface-secondary transition-colors"
       >
-        <i className="ti ti-brand-instagram text-[20px]" aria-hidden="true" />
+        <i className="ti ti-brand-instagram text-[22px]" aria-hidden="true" />
       </a>
 
       <a
@@ -26,24 +30,18 @@ export default function ContactFooter() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="KakaoTalk"
-        className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-brand transition-colors"
+        className="w-11 h-11 flex items-center justify-center rounded-full text-text-muted hover:text-brand active:bg-surface-secondary transition-colors"
       >
-        <i className="ti ti-brand-kako-talk text-[20px]" aria-hidden="true" />
+        <i className="ti ti-brand-kako-talk text-[22px]" aria-hidden="true" />
       </a>
 
       <a
         href={`mailto:${CONTACT_EMAIL}`}
-        className="flex items-center gap-1.5 text-[15px] font-semibold text-text-muted hover:text-brand transition-colors"
+        className="flex h-11 min-w-0 items-center gap-1.5 rounded-full px-2 text-[14px] sm:text-[15px] font-semibold text-text-muted hover:text-brand active:bg-surface-secondary transition-colors"
       >
-        <i className="ti ti-mail text-[20px]" aria-hidden="true" />
-        {CONTACT_EMAIL}
+        <i className="ti ti-mail text-[22px] flex-shrink-0" aria-hidden="true" />
+        <span className="truncate">{CONTACT_EMAIL}</span>
       </a>
-
-    <br></br>
-    <br></br>
-    <br></br>
-    <br></br>
-
-    </div>
+    </footer>
   )
 }

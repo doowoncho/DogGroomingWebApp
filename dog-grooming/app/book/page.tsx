@@ -68,12 +68,12 @@ function formatDateTimeDisplay(dt: string | null | undefined) {
 // ─── Step indicator ──────────────────────────────────────────────────────────
 function StepIndicator({ current, total }: { current: Step; total: number }) {
   return (
-    <div className="flex items-center px-5 py-3.5">
+    <div className="flex items-center px-5 pt-2 pb-4">
       {Array.from({ length: total }, (_, i) => (i + 1) as Step).map((n, i) => (
         <div key={n} className="flex items-center flex-1 last:flex-none">
           <div
             className={cn(
-              'w-[30px] h-[30px] rounded-full flex items-center justify-center text-[13px] font-bold font-nunito flex-shrink-0',
+              'w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-bold font-nunito flex-shrink-0',
               n < current && 'bg-brand text-white',
               n === current && 'bg-text-primary text-white',
               n > current && 'bg-surface-secondary text-text-muted',
@@ -113,7 +113,7 @@ function ServiceStep({
 
   return (
     <div>
-      <p className="px-5 pt-1 font-nunito font-bold text-[15px] text-text-primary">
+      <p className="px-5 pt-1 pb-3 font-nunito font-extrabold text-[18px] text-text-primary">
         {t.booking.chooseService}
       </p>
       {services.sort((a, b) => a.order - b.order).map((svc) => {
@@ -122,8 +122,9 @@ function ServiceStep({
           <button
             key={svc.id}
             onClick={() => onSelect(svc)}
+            aria-pressed={active}
             className={cn(
-              'flex items-center gap-3 mx-5 mb-2.5 p-4 rounded-[16px] border w-[calc(100%-40px)] transition-colors',
+              'flex items-center gap-3 mx-5 mb-3 p-4 rounded-[18px] border-[1.5px] w-[calc(100%-40px)] transition active:scale-[0.98]',
               active ? 'border-brand bg-brand-muted' : 'border-border bg-white',
             )}
           >
@@ -131,14 +132,14 @@ function ServiceStep({
               <i className={`ti ${svc.icon} text-[24px] text-brand-light`} aria-hidden="true" />
             </div>
             <div className="flex-1 text-left">
-              <p className="font-nunito font-bold text-[14px] text-text-primary">{svc.name}</p>
-              <p className="text-[12px] text-text-muted mt-0.5">{svc.description}</p>
+              <p className="font-nunito font-bold text-[16px] leading-tight text-text-primary">{svc.name}</p>
+              <p className="text-[13px] leading-snug text-text-muted mt-1">{svc.description}</p>
             </div>
-            <p className="font-nunito font-extrabold text-[16px] text-brand">${svc.price}</p>
+            <p className="font-nunito font-extrabold text-[18px] text-brand">${svc.price}</p>
             <i
               className={cn(
-                'ti text-[20px]',
-                active ? 'ti-circle-check text-brand' : 'ti-circle text-border',
+                'ti text-[24px]',
+                active ? 'ti-circle-check-filled text-brand' : 'ti-circle text-border',
               )}
               aria-hidden="true"
             />
@@ -211,6 +212,9 @@ function DateTimeStep({
     setSelectedDate(isoDate)
     setSelectedTime(null)
     fetchSlots(isoDate)
+    requestAnimationFrame(() =>
+      document.getElementById('time-slots')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    )
   }
 
   function handleTimeSelect(time: string) {
@@ -222,34 +226,34 @@ function DateTimeStep({
 
   return (
     <div>
-      <p className="px-5 pt-3.5 pb-3 font-nunito font-bold text-[15px] text-text-primary">
+      <p className="px-5 pt-1 pb-3 font-nunito font-extrabold text-[18px] text-text-primary">
         {t.booking.pickDateTime}
       </p>
       <div className="mx-5">
         <div className="flex items-center justify-between mb-3">
-          <span className="font-nunito font-extrabold text-[16px] text-text-primary">
+          <span className="font-nunito font-extrabold text-[18px] text-text-primary">
             {monthNames[month]} {year}
           </span>
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             <button
               onClick={() => setViewingDate(new Date(year, month - 1, 1))}
-              className="w-8 h-8 rounded-full bg-surface-secondary flex items-center justify-center hover:bg-border transition-colors"
+              className="w-11 h-11 rounded-full bg-surface-secondary flex items-center justify-center hover:bg-border active:bg-border transition-colors"
               aria-label="Previous month"
             >
-              <i className="ti ti-chevron-left text-[14px] text-text-secondary" aria-hidden="true" />
+              <i className="ti ti-chevron-left text-[18px] text-text-secondary" aria-hidden="true" />
             </button>
             <button
               onClick={() => setViewingDate(new Date(year, month + 1, 1))}
-              className="w-8 h-8 rounded-full bg-surface-secondary flex items-center justify-center hover:bg-border transition-colors"
+              className="w-11 h-11 rounded-full bg-surface-secondary flex items-center justify-center hover:bg-border active:bg-border transition-colors"
               aria-label="Next month"
             >
-              <i className="ti ti-chevron-right text-[14px] text-text-secondary" aria-hidden="true" />
+              <i className="ti ti-chevron-right text-[18px] text-text-secondary" aria-hidden="true" />
             </button>
           </div>
         </div>
         <div className="grid grid-cols-7 text-center mb-1.5">
           {t.dayAbbr.map((d: string) => (
-            <span key={d} className="text-[11px] font-semibold text-text-muted py-1">{d}</span>
+            <span key={d} className="text-[12px] font-semibold text-text-muted py-1">{d}</span>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-1">
@@ -272,11 +276,11 @@ function DateTimeStep({
                 disabled={isPast || isToday}
                 onClick={() => handleDateSelect(isoDate)}
                 className={cn(
-                  'aspect-square flex items-center justify-center text-[13px] font-semibold font-nunito rounded-full transition-colors',
+                  'aspect-square max-h-14 w-full mx-auto flex items-center justify-center text-[16px] font-semibold font-nunito rounded-full transition-colors',
                   isPast && 'text-border cursor-not-allowed',
                   isToday && 'text-brand cursor-not-allowed',
                   active && 'bg-brand text-white',
-                  !isPast && !active && !isToday && 'text-text-primary hover:bg-surface-secondary',
+                  !isPast && !active && !isToday && 'text-text-primary hover:bg-surface-secondary active:bg-surface-secondary',
                 )}
               >
                 {d}
@@ -287,8 +291,8 @@ function DateTimeStep({
       </div>
 
       {selectedDate && (
-        <div className="px-5 pt-4">
-          <p className="text-[12px] font-semibold text-text-muted uppercase tracking-wide mb-2">
+        <div id="time-slots" className="px-5 pt-5 scroll-mt-16">
+          <p className="text-[13px] font-bold text-text-muted uppercase tracking-wide mb-2.5">
             {t.booking.availableTimes}
           </p>
           {loadingSlots ? (
@@ -296,7 +300,7 @@ function DateTimeStep({
               {Array.from({ length: 8 }).map((_, i) => (
                 <div
                   key={i}
-                  className="py-2.5 border border-border rounded-[12px] bg-surface-secondary animate-pulse"
+                  className="h-[52px] border border-border rounded-[14px] bg-surface-secondary animate-pulse"
                 />
               ))}
             </div>
@@ -308,7 +312,7 @@ function DateTimeStep({
                   disabled={!available}
                   onClick={() => available && handleTimeSelect(time)}
                   className={cn(
-                    'py-2.5 border rounded-[12px] text-[13px] font-semibold font-nunito transition-colors',
+                    'h-[52px] border-[1.5px] rounded-[14px] text-[15px] font-semibold font-nunito transition active:scale-[0.97]',
                     !available && 'text-border bg-surface border-border cursor-not-allowed',
                     available && selectedTime !== time && 'text-text-primary bg-white border-border hover:border-brand',
                     selectedTime === time && 'bg-brand text-white border-brand',
@@ -394,7 +398,7 @@ function StyleStep({
 
   return (
     <div>
-      <p className="px-5 pt-3.5 pb-3 font-nunito font-bold text-[15px] text-text-primary">
+      <p className="px-5 pt-1 pb-3 font-nunito font-extrabold text-[18px] text-text-primary">
         {t.booking.chooseStyle}
       </p>
 
@@ -406,8 +410,9 @@ function StyleStep({
             <button
               key={style.id}
               onClick={() => onStyleSelect(style)}
+              aria-pressed={active}
               className={cn(
-                'flex flex-col items-center gap-2 p-3.5 rounded-[14px] border transition-colors',
+                'relative flex flex-col items-center gap-2 p-4 rounded-[18px] border-[1.5px] transition active:scale-[0.97]',
                 active
                   ? 'border-brand bg-brand-muted'
                   : 'border-border bg-white',
@@ -418,18 +423,18 @@ function StyleStep({
               </span>
 
               <div className="text-center">
-                <p className="text-[13px] font-bold font-nunito text-text-primary">
+                <p className="text-[15px] font-bold font-nunito text-text-primary">
                   {style.name}
                 </p>
 
-                <p className="text-[10px] text-text-muted mt-0.5">
+                <p className="text-[12px] leading-snug text-text-muted mt-0.5">
                   {style.desc}
                 </p>
               </div>
 
               {active && (
                 <i
-                  className="ti ti-circle-check text-brand text-[16px] mt-1"
+                  className="ti ti-circle-check-filled text-brand text-[22px] absolute top-2 right-2"
                   aria-hidden="true"
                 />
               )}
@@ -439,7 +444,7 @@ function StyleStep({
       </div>
 
     <div className="px-5 mt-5">
-      <p className="font-nunito font-bold text-[15px] text-text-primary mb-3">
+      <p className="font-nunito font-extrabold text-[18px] text-text-primary mb-3">
         {t.booking.addPhoto}
       </p>
 
@@ -467,9 +472,10 @@ function StyleStep({
 
               <button
                onClick={() => onRemovePhoto(index)}
-                className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1"
+                aria-label="Remove photo"
+                className="absolute top-1.5 right-1.5 w-9 h-9 flex items-center justify-center bg-black/55 text-white rounded-full"
               >
-                <i className="ti ti-x text-[14px]" />
+                <i className="ti ti-x text-[18px]" />
               </button>
             </div>
           ))}
@@ -538,7 +544,7 @@ function ConfirmStep({
 
   return (
     <div>
-      <p className="px-5 pt-3.5 pb-1 font-nunito font-bold text-[15px] text-text-primary">
+      <p className="px-5 pt-1 pb-1 font-nunito font-extrabold text-[18px] text-text-primary">
         {t.booking.confirmBooking}
       </p>
       <div className="mx-5 mt-3 bg-white rounded-[20px] border border-border overflow-hidden">
@@ -551,10 +557,10 @@ function ConfirmStep({
         ].map(({ label, value }) => (
           <div
             key={label}
-            className="flex items-center justify-between px-5 py-3 border-b border-border last:border-none"
+            className="flex items-center justify-between gap-4 px-5 py-3.5 border-b border-border last:border-none"
           >
-            <span className="text-[13px] font-semibold text-text-muted">{label}</span>
-            <span className="text-[13px] font-bold text-text-primary">{value}</span>
+            <span className="text-[14px] font-semibold text-text-muted">{label}</span>
+            <span className="text-[15px] font-bold text-text-primary text-right">{value}</span>
           </div>
         ))}
         <div className="flex items-center justify-between px-5 py-3">
@@ -566,19 +572,22 @@ function ConfirmStep({
       </div>
 
      <div className="px-5 mt-4 relative">
-  <label className="block text-[12px] font-bold text-text-primary uppercase tracking-wide mb-1.5">
+  <label className="block text-[13px] font-bold text-text-primary uppercase tracking-wide mb-1.5">
     {t.booking.dogName}
-  <span className='text-[8px] mx-2'>*Required</span>
+  <span className='text-[11px] font-semibold normal-case tracking-normal text-brand mx-2'>*Required</span>
   </label>
   <input
     type="text"
     placeholder="e.g. Curi"
     value={dogQuery}
+    autoComplete="off"
+    autoCapitalize="words"
+    enterKeyHint="next"
     onChange={(e) => {
       setDogQuery(e.target.value)
       onChange({ dogName: e.target.value, breed: e.target.value === '' ? '' : draft.breed })
     }}
-    className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
+    className="w-full px-4 py-3.5 border border-border rounded-[14px] text-base font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
   />
   {dogQuery.length > 0 && filteredDogs.length > 0 && (
     <div className="absolute left-5 right-5 mt-1 bg-white border border-border rounded-[14px] shadow-lg overflow-hidden z-20">
@@ -591,7 +600,7 @@ function ConfirmStep({
             setBreedQuery(dog.breed ?? '')        // auto-fills the breed input
             onChange({ dogName: dog.name, breed: dog.breed ?? '' })
           }}
-          className="w-full text-left px-4 py-3 text-[14px] font-medium text-text-primary hover:bg-surface-secondary transition-colors flex items-center justify-between"
+          className="w-full text-left px-4 py-3.5 text-base font-medium text-text-primary hover:bg-surface-secondary active:bg-surface-secondary transition-colors flex items-center justify-between"
           >
           <span>{dog.name}</span>
           {dog.breed && (
@@ -603,29 +612,36 @@ function ConfirmStep({
   )}
 </div>
       <div className="px-5 mt-3">
-        <label className="block text-[12px] font-bold text-text-primary uppercase tracking-wide mb-1.5">
+        <label className="block text-[13px] font-bold text-text-primary uppercase tracking-wide mb-1.5">
           {t.booking.phone}
-           <span className='text-[8px] mx-2'>*Required</span>
+           <span className='text-[11px] font-semibold normal-case tracking-normal text-brand mx-2'>*Required</span>
         </label>
         <input
           type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          enterKeyHint="next"
           placeholder="(123) 456-7890"
           value={draft.phone}
           onChange={(e) => onChange({ phone: e.target.value.replace(/[^\d+\-()\s]/g, '') })}
-          className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
+          className="w-full px-4 py-3.5 border border-border rounded-[14px] text-base font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
         />
       </div>
 
       <div className="px-5 mt-3">
-        <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
+        <label className="block text-[13px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
           KakaoId
         </label>
         <input
           type="text"
           placeholder="kakaoid"
+          autoComplete="off"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           value={draft.kakaoid ?? ''}
           onChange={(e) => onChange({ kakaoid: e.target.value })}
-          className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
+          className="w-full px-4 py-3.5 border border-border rounded-[14px] text-base font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
         />
       </div>
 
@@ -639,7 +655,7 @@ function ConfirmStep({
 
 
       <div className="px-5 mt-3 pb-2">
-        <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
+        <label className="block text-[13px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
           {t.booking.notesForGroomer}
         </label>
         <textarea
@@ -647,7 +663,7 @@ function ConfirmStep({
           placeholder={t.booking.anySpecialRequests}
           value={draft.notes}
           onChange={(e) => onChange({ notes: e.target.value })}
-          className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand resize-none"
+          className="w-full px-4 py-3.5 border border-border rounded-[14px] text-base font-nunito-sans text-text-primary bg-white outline-none focus:border-brand resize-none"
         />
       </div>
     </div>
@@ -710,7 +726,7 @@ function ConfirmationPage({
 
  return (
   <div className='app-shell'>
-  <div className="flex flex-col items-center justify-center px-5 py-8 text-center">
+  <div className="flex flex-col items-center justify-center px-5 pt-[max(env(safe-area-inset-top),1.5rem)] pb-safe text-center">
     <div className="w-16 h-16 bg-brand-pale rounded-full flex items-center justify-center mb-4">
       <i className="ti ti-circle-check text-brand text-[32px]" aria-hidden="true" />
     </div>
@@ -723,20 +739,20 @@ function ConfirmationPage({
 
         {/* Locked field */}
         <div className="flex justify-between items-center pb-3 border-b border-border">
-          <span className="text-[13px] font-semibold text-text-muted flex items-center gap-1">
+          <span className="text-[14px] font-semibold text-text-muted flex items-center gap-1">
             {t.booking.service}
             {editing && <i className="ti ti-lock text-[12px] text-text-muted" aria-hidden="true" />}
           </span>
-          <span className="text-[13px] font-bold text-text-primary">{selectedService?.name ?? '—'}</span>
+          <span className="text-[15px] font-bold text-text-primary text-right">{selectedService?.name ?? '—'}</span>
         </div>
 
         {/* Locked field */}
         <div className="flex justify-between items-center pb-3 border-b border-border">
-          <span className="text-[13px] font-semibold text-text-muted flex items-center gap-1">
+          <span className="text-[14px] font-semibold text-text-muted flex items-center gap-1">
             {t.booking.date}
             {editing && <i className="ti ti-lock text-[12px] text-text-muted" aria-hidden="true" />}
           </span>
-          <span className="text-[13px] font-bold text-text-primary">{formatDateTimeDisplay(draft.dateTime)}</span>
+          <span className="text-[15px] font-bold text-text-primary text-right">{formatDateTimeDisplay(draft.dateTime)}</span>
         </div>
 
         {editing && (
@@ -747,21 +763,21 @@ function ConfirmationPage({
 
         {/* Editable fields */}
         <div className="flex justify-between items-center pb-3 border-b border-border">
-          <span className="text-[13px] font-semibold text-text-muted">{t.booking.dog}</span>
+          <span className="text-[14px] font-semibold text-text-muted">{t.booking.dog}</span>
           {editing ? (
             <input
               value={dogName}
               onChange={(e) => setDogName(e.target.value)}
-              className="text-[13px] font-bold text-text-primary text-right border-b border-brand outline-none w-1/2"
+              className="text-base font-bold text-text-primary text-right border-b border-brand outline-none w-1/2 py-1"
             />
           ) : (
-            <span className="text-[13px] font-bold text-text-primary">{draft.dogName || '—'}</span>
+            <span className="text-[15px] font-bold text-text-primary text-right">{draft.dogName || '—'}</span>
           )}
         </div>
 
         {/* Breed — add this block */}
         <div className="flex justify-between items-center pb-3 border-b border-border">
-          <span className="text-[13px] font-semibold text-text-muted">{t.booking.dogBreed}</span>
+          <span className="text-[14px] font-semibold text-text-muted">{t.booking.dogBreed}</span>
           {editing ? (
 
             <BreedAutoComplete 
@@ -771,46 +787,46 @@ function ConfirmationPage({
               editMode={true}
             />
           ) : (
-            <span className="text-[13px] font-bold text-text-primary">{draft.breed || '—'}</span>
+            <span className="text-[15px] font-bold text-text-primary text-right">{draft.breed || '—'}</span>
           )}
         </div>
 
         <div className="flex justify-between items-center pb-3 border-b border-border">
-          <span className="text-[13px] font-semibold text-text-muted">{t.booking.phone}</span>
+          <span className="text-[14px] font-semibold text-text-muted">{t.booking.phone}</span>
           {editing ? (
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value.replace(/[^\d+\-()\s]/g, ''))}
-              className="text-[13px] font-bold text-text-primary text-right border-b border-brand outline-none w-1/2"
+              className="text-base font-bold text-text-primary text-right border-b border-brand outline-none w-1/2 py-1"
             />
           ) : (
-            <span className="text-[13px] font-bold text-text-primary">{draft.phone ?? '—'}</span>
+            <span className="text-[15px] font-bold text-text-primary text-right">{draft.phone ?? '—'}</span>
           )}
         </div>
 
         <div className="flex justify-between items-center pb-3 border-b border-border">
-          <span className="text-[13px] font-semibold text-text-muted">KakaoId</span>
+          <span className="text-[14px] font-semibold text-text-muted">KakaoId</span>
           {editing ? (
             <input
               value={kakaoid}
               onChange={(e) => setKakaoid(e.target.value)}
-              className="text-[13px] font-bold text-text-primary text-right border-b border-brand outline-none w-1/2"
+              className="text-base font-bold text-text-primary text-right border-b border-brand outline-none w-1/2 py-1"
             />
           ) : (
-            <span className="text-[13px] font-bold text-text-primary">{draft.kakaoid ?? '—'}</span>
+            <span className="text-[15px] font-bold text-text-primary text-right">{draft.kakaoid ?? '—'}</span>
           )}
         </div>
 
         {editing && (
           <div className="pb-1 text-left">
-            <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
+            <label className="block text-[13px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
               {t.booking.notesForGroomer}
             </label>
             <textarea
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-[12px] text-[13px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand resize-none"
+              className="w-full px-3 py-2.5 border border-border rounded-[12px] text-base font-nunito-sans text-text-primary bg-white outline-none focus:border-brand resize-none"
             />
           </div>
         )}
@@ -822,8 +838,8 @@ function ConfirmationPage({
 
         {selectedService?.needs_style && (
           <div className="flex justify-between">
-            <span className="text-[13px] font-semibold text-text-muted">{t.booking.style}</span>
-            <span className="text-[13px] font-bold text-text-primary">{selectedStyle?.name ?? '—'}</span>
+            <span className="text-[14px] font-semibold text-text-muted">{t.booking.style}</span>
+            <span className="text-[15px] font-bold text-text-primary text-right">{selectedStyle?.name ?? '—'}</span>
           </div>
         )}
       </div>
@@ -936,20 +952,20 @@ const handleCreateAccount = async () => {
       <p className="text-text-secondary text-[14px] mb-6">{t.booking.saveBookings}</p>
 
       <div className="mb-4">
-        <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
+        <label className="block text-[13px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
           {t.booking.email}
         </label>
         <input
           type="email"
           value={draft.email}
           disabled
-          className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-muted bg-surface outline-none cursor-not-allowed"
+          className="w-full px-4 py-3.5 border border-border rounded-[14px] text-base font-nunito-sans text-text-muted bg-surface outline-none cursor-not-allowed"
         />
         <p className="text-[11px] text-text-muted mt-1">{t.booking.usesBookingEmail}</p>
       </div>
 
       <div className="mb-4">
-        <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
+        <label className="block text-[13px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
           {t.booking.password}
         </label>
         <input
@@ -957,12 +973,12 @@ const handleCreateAccount = async () => {
           placeholder={t.booking.atLeast6Chars}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
+          className="w-full px-4 py-3.5 border border-border rounded-[14px] text-base font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
         />
       </div>
 
       <div className="mb-6">
-        <label className="block text-[12px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
+        <label className="block text-[13px] font-bold text-text-secondary uppercase tracking-wide mb-1.5">
           {t.booking.confirmPassword}
         </label>
         <input
@@ -970,7 +986,7 @@ const handleCreateAccount = async () => {
           placeholder={t.booking.confirmPassword}
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          className="w-full px-4 py-3 border border-border rounded-[14px] text-[14px] font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
+          className="w-full px-4 py-3.5 border border-border rounded-[14px] text-base font-nunito-sans text-text-primary bg-white outline-none focus:border-brand"
         />
         {password && confirmPassword && password !== confirmPassword && (
           <p className="text-[11px] text-red-500 mt-1">{t.booking.passwordsDontMatch}</p>
@@ -1016,7 +1032,7 @@ function BookPageContent() {
   const dogNameParam = searchParams.get('dogName')
   const breedParam = searchParams.get('breed') // optional
 
-  const { language } = useLanguage()
+  const { language, setLanguage } = useLanguage()
   const t = translations[language]
   const { styles } = useStyles(language, t)
   const [step, setStep] = useState<Step>(1)
@@ -1199,21 +1215,7 @@ const user = session?.user
       //   })
       // }
 
-      await fetch('/api/admin/notifyAdmin', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        service: selectedService?.name,
-        email: draft.email,
-        phone: draft.phone,
-        kakaoid: draft.kakaoid,
-        dog_name: draft.dogName,
-        date_time: draft.dateTime,
-        breed: draft.breed
-      }),
-    })
+      // The admin "new booking" email is sent server-side by POST /api/bookings.
 
       // After the booking succeeds, before setIsConfirmed(true)
 if (user) {  
@@ -1260,6 +1262,10 @@ useEffect(() => {
 }, [])
 
 
+useEffect(() => {
+  document.getElementById('app-scroll')?.scrollTo({ top: 0 })
+}, [step, isConfirmed, isCreatingAccount])
+
   function handleBack() {
     if (step === 4 && !serviceNeedsStyle) {
       setStep(2)
@@ -1268,20 +1274,36 @@ useEffect(() => {
     }
   }
 
+  const backButtonClass =
+    'w-11 h-11 rounded-full bg-surface-secondary flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform'
+
+  // Phones only: the site TopBar is hidden on /book, so this header carries the language switch.
+  const languageToggle = (
+    <button
+      type="button"
+      onClick={() => setLanguage(language === 'en' ? 'ko' : 'en')}
+      aria-label={language === 'en' ? 'Switch to Korean' : 'Switch to English'}
+      className="md:hidden ml-auto h-11 min-w-11 px-3 rounded-full bg-surface-secondary text-[14px] font-bold text-text-secondary flex-shrink-0 active:scale-95 transition-transform"
+    >
+      {language === 'en' ? 'EN' : '한'}
+    </button>
+  )
+
   if (isCreatingAccount) {
     return (
       <div>
-        <div className="flex items-center gap-3 px-5 pt-4 pb-4 border-b border-border">
+        <div className="pt-safe flex items-center gap-3 px-5 pb-3 md:pt-0 border-b border-border">
           <button
             onClick={() => setIsCreatingAccount(false)}
-            className="w-9 h-9 rounded-full bg-surface-secondary flex items-center justify-center flex-shrink-0"
+            className={backButtonClass}
             aria-label="Back"
           >
-            <i className="ti ti-arrow-left text-[18px] text-text-secondary" aria-hidden="true" />
+            <i className="ti ti-arrow-left text-[20px] text-text-secondary" aria-hidden="true" />
           </button>
-          <span className="font-nunito font-extrabold text-xl text-text-primary">
+          <span className="truncate font-nunito font-extrabold text-xl text-text-primary">
             {t.booking.createYourAccount}
           </span>
+          {languageToggle}
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar">
 
@@ -1314,20 +1336,21 @@ useEffect(() => {
   }
 
   return (
-    <div className='app-shell'>
-      <div className="flex items-center gap-3 px-5 pt-4">
-        <button
-          onClick={step === 1 ? undefined : handleBack}
-          className="w-9 h-9 rounded-full bg-surface-secondary flex items-center justify-center flex-shrink-0"
-          aria-label="Back"
-        >
-          <Link href={step === 1 ? '/' : '#'}>
-            <i className="ti ti-arrow-left text-[18px] text-text-secondary" aria-hidden="true" />
+    <div className='app-shell flex flex-col min-h-full'>
+      <div className="sticky top-0 z-30 bg-surface pt-safe pb-2 md:pt-1 flex items-center gap-3 px-5">
+        {step === 1 ? (
+          <Link href="/" className={backButtonClass} aria-label="Back">
+            <i className="ti ti-arrow-left text-[20px] text-text-secondary" aria-hidden="true" />
           </Link>
-        </button>
-        <span className="font-nunito font-extrabold text-xl text-text-primary">
+        ) : (
+          <button type="button" onClick={handleBack} className={backButtonClass} aria-label="Back">
+            <i className="ti ti-arrow-left text-[20px] text-text-secondary" aria-hidden="true" />
+          </button>
+        )}
+        <span className="truncate font-nunito font-extrabold text-xl text-text-primary">
           {t.booking.bookASession}
         </span>
+        {languageToggle}
       </div>
 
       <StepIndicator
@@ -1335,7 +1358,7 @@ useEffect(() => {
         total={serviceNeedsStyle ? 4 : 3}
       />
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-2">
+      <div className="flex-1 pb-4">
          {submitError && (
           <div className="mx-5 mt-3 px-4 py-3 bg-red-50 border border-red-200 rounded-[14px] flex items-start gap-2">
             <i className="ti ti-alert-circle text-red-500 text-[16px] mt-0.5 flex-shrink-0" aria-hidden="true" />
@@ -1385,13 +1408,22 @@ useEffect(() => {
         )}
       </div>
 
-      <div className="px-5 py-3.5 bg-surface">
+      <div data-bottom-bar className="sticky bottom-0 z-30 px-5 pt-3 pb-safe bg-surface/95 backdrop-blur border-t border-border">
+        {selectedService && (
+          <div className="flex items-center justify-between pb-2.5 text-[14px]">
+            <span className="truncate font-semibold text-text-secondary">
+              {selectedService.name}
+              {draft.dateTime && step > 2 ? ` · ${formatDateTimeDisplay(draft.dateTime)}` : ''}
+            </span>
+            <span className="ml-3 font-nunito font-extrabold text-[17px] text-brand">${selectedService.price}</span>
+          </div>
+        )}
         <button
           disabled={!canContinue || isSubmitting}
           onClick={handleContinue}
-          className="w-full bg-brand text-white font-nunito font-bold text-base rounded-full py-4 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity active:opacity-80"
+          className="w-full bg-brand text-white font-nunito font-bold text-[17px] rounded-full py-[18px] shadow-[0_10px_24px_-12px_rgba(255,107,26,0.7)] disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed transition active:scale-[0.98]"
         >
-          {step === 4 ? t.booking.confirmBookingBtn : t.booking.continue}
+          {isSubmitting ? '…' : step === 4 ? t.booking.confirmBookingBtn : t.booking.continue}
         </button>
       </div>
     </div>
