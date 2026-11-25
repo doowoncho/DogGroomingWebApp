@@ -49,10 +49,10 @@ export default function HomePage() {
   return (
     <div className="page-full-bleed relative min-h-full flex flex-col">
     <div className="flex-1 flex max-w-6xl mx-auto px-4 sm:px-8 lg:px-16 w-full">
-        <div className="relative w-full flex flex-col sm:block lg:my-15 sm:my-10 mt-2 mb-3">
-          <div className="relative flex flex-1 flex-col w-full sm:block rounded-[24px] bg-white border border-black/[0.06] shadow-[0_20px_45px_-20px_rgba(0,0,0,0.18)] sm:min-h-[580px] max-w-[530px] mx-auto">
+        <div className="relative w-full flex flex-col sm:block before:content-[''] before:flex-1 after:content-[''] after:flex-[2] sm:before:hidden sm:after:hidden lg:my-15 sm:my-10 mt-2 mb-3">
+          <div className="relative w-full rounded-[24px] bg-white border border-black/[0.06] shadow-[0_20px_45px_-20px_rgba(0,0,0,0.18)] sm:min-h-[580px] max-w-[530px] mx-auto">
             {/* ...card content unchanged... */}
-            <div className="flex flex-1 flex-col sm:block px-5 pt-7 pb-5 sm:p-10">
+            <div className="px-5 pt-7 pb-6 sm:p-10">
               <h3
                 className="text-center font-nunito font-extrabold text-[24px] text-text-primary mb-1"
               >
@@ -64,7 +64,7 @@ export default function HomePage() {
                 {language === 'en' ? 'Takes less than a minute' : '1분이면 충분해요'}
               </p>
 
-              <div className="flex flex-1 flex-col gap-5 sm:block sm:space-y-5">
+              <div className="space-y-5">
                 {/* Dog name */}
                 <div>
                   <label
@@ -140,7 +140,7 @@ export default function HomePage() {
                   type="button"
                   onClick={handleBook}
                   disabled={!isValid}
-                  className={`mt-auto w-full font-nunito font-bold text-[17px] tracking-wide px-4 py-[18px] rounded-full transition-all ${
+                  className={`w-full font-nunito font-bold text-[17px] tracking-wide px-4 py-[18px] rounded-full transition-all ${
                     isValid
                       ? 'bg-brand text-white shadow-[0_10px_24px_-10px_rgba(0,0,0,0.35)] hover:brightness-95 active:scale-[0.99]'
                       : 'bg-[#EFE9DC] text-[#B3AC9C] cursor-not-allowed'

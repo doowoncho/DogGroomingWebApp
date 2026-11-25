@@ -12,7 +12,6 @@ export interface DBService {
   lg_price: number
   icon: string
   slots: number
-  needs_style: boolean
   order: number
 }
 
@@ -24,7 +23,6 @@ export interface Service {
   price: number
   icon: string
   slots: number
-  needs_style: boolean
   order: number
 }
 
@@ -41,27 +39,9 @@ export interface Dogs {
   breed: string | null
 }
 
-export interface GroomingStyle {
-  id: number
-  name: string
-  desc: string
-  emoji: string
-}
-
-export interface DBGroomingStyle {
-  id: number
-  name_kor: string
-  desc_kor: string
-  name_eng: string
-  desc_eng: string
-  emoji: string
-}
-
 export interface BookingDraft {
   serviceId: number | null
   dateTime: string | null
-  styleId: number | null
-  photoUrls: string[]
   dogName: string
   kakaoid: string
   email: string
@@ -81,7 +61,6 @@ export interface Booking {
   service_price: number
   duration_slots: number
   date_time: string
-  style_id: number | null
   dog_name: string
   breed: string | null
   email: string

@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid or empty request body' }, { status: 400 })
     }
 
-    const { name_eng, name_kor, desc_eng, desc_kor, duration, icon, needs_style, sm_price, md_price, lg_price } = body
+    const { name_eng, name_kor, desc_eng, desc_kor, duration, icon, sm_price, md_price, lg_price } = body
 
     if (!name_eng || typeof name_eng !== 'string' || !name_eng.trim()) {
       return NextResponse.json({ error: 'name_eng is required' }, { status: 400 })
@@ -101,7 +101,6 @@ export async function POST(req: Request) {
       lg_price: lg_price ?? 0,
       duration: 180,
       icon: icon ?? '',
-      needs_style: needs_style ?? false,
       slots: durationToSlots(duration ?? 180),
       order: nextSortOrder,
     }

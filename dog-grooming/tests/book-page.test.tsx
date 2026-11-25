@@ -12,7 +12,6 @@ jest.mock('@/lib/hooks/useServices', () => ({
         name: 'Nail Trim',
         price: 50,
         slots: 1,
-        needs_style: false,
         icon: 'ti-scissors',
         duration: 30,
       },
@@ -21,19 +20,10 @@ jest.mock('@/lib/hooks/useServices', () => ({
         name: 'Full Spa Package',
         price: 120,
         slots: 3,
-        needs_style: true,
         icon: 'ti-sparkles',
         duration: 90,
       },
     ],
-    loading: false,
-    error: null,
-  }),
-}))
-
-jest.mock('@/lib/hooks/useStyles', () => ({
-  useStyles: () => ({
-    styles: [{ id: 1, name: 'Cute Cut', emoji: '🐶', desc: 'Nice style' }],
     loading: false,
     error: null,
   }),
@@ -121,7 +111,7 @@ async function pickDateAndTime() {
   })
 }
 
-/** Fills Step 4 (details) and submits. */
+/** Fills Step 3 (details) and submits. */
 async function fillDetailsAndConfirm({
   dog,
   email,
@@ -175,10 +165,10 @@ describe('BookPage - full booking flow (Nail Trim, guest)', () => {
       fireEvent.click(screen.getByRole('button', { name: /continue/i }))
     })
 
-    // Step 2: date + time (needs_style: false → step 3 is skipped)
+    // Step 2: date + time
     await pickDateAndTime()
 
-    // Step 4: details
+    // Step 3: details
     await screen.findByRole('button', { name: /confirm booking/i })
     await fillDetailsAndConfirm({ dog: 'curi', email: 'test@example.com', phone: '403-555-0100' })
 
@@ -207,7 +197,7 @@ describe('BookPage - account creation flow (guest → create account)', () => {
     // Step 2
     await pickDateAndTime()
 
-    // Step 4
+    // Step 3
     await fillDetailsAndConfirm({ dog: 'Mochi', email: 'mochi@example.com', phone: '403-555-0101' })
 
     await screen.findByText(/we've received your booking/i)
@@ -248,7 +238,7 @@ describe('BookPage - logged-in user with a saved dog', () => {
     // Step 2
     await pickDateAndTime()
 
-    // Step 4: verify pre-fill before submitting
+    // Step 3: verify pre-fill before submitting
     await screen.findByPlaceholderText(/curi/i)
     expect(screen.getByPlaceholderText(/your@email/i)).toHaveValue('saved@example.com')
     expect(screen.getByPlaceholderText(/\(123\)/i)).toHaveValue('403-111-2222')
@@ -268,57 +258,28 @@ describe('BookPage - logged-in user with a saved dog', () => {
   })
 })
 
-describe('BookPage - Full Spa Package with style selection', () => {
-  beforeEach(() => {
-    // The top-level mock uses a factory function, so we need mockReturnValue here
-    const { useServices } = require('@/lib/hooks/useServices')
-    ;(useServices as jest.Mock)?.mockReturnValue?.({
-      services: [
-        {
-          id: 2,
-          name: 'Full Spa Package',
-          price: 120,
-          slots: 3,
-          needs_style: true,
-          icon: 'ti-sparkles',
-          duration: 90,
-        },
-      ],
-      loading: false,
-      error: null,
-    })
-  })
-
-  it('completes the booking including the style-selection step', async () => {
+describe('BookPage - multi-slot service goes straight to details', () => {
+  it('skips any style step and sends no style_id', async () => {
     await act(async () => { render(<BookPage />) })
 
     // Step 1
     fireEvent.click(await screen.findByText('Full Spa Package'))
-
-    await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /continue/i }))
-    })
-
-    // Step 2: verify slots param is forwarded
-    pickDateAndTime();
-
-    // Step 3: style selection (needs_style: true)
-    fireEvent.click(await screen.findByText('Cute Cut'))
-
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /continue/i }))
     })
 
-    // Step 4
+    // Step 2
+    await pickDateAndTime()
+
+    // Step 3: details come right after the date
     await fillDetailsAndConfirm({ dog: 'Bella', email: 'bella@example.com', phone: '403-555-9999' })
 
     await screen.findByText(/we've received your booking/i)
     expect(screen.getByText('Bella')).toBeInTheDocument()
 
-    // Confirm style_id was included in the POST body
     const bookingCall = (global.fetch as jest.Mock).mock.calls.find(([url]: [string]) =>
       url.includes('/api/bookings'),
     )
-    expect(JSON.parse(bookingCall[1].body)).toMatchObject({ style_id: 1 })
+    expect(JSON.parse(bookingCall[1].body)).not.toHaveProperty('style_id')
   })
 })

@@ -81,7 +81,6 @@ export async function POST(req: Request) {
     .insert([{
       service_id:    body.service_id,
       date_time:     body.date_time,
-      style_id:      body.style_id ?? null,
       dog_name:      body.dog_name,
       breed:         body.breed ?? null,
       email:         body.email ?? null,

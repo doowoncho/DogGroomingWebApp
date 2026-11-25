@@ -1,19 +1,18 @@
 'use client'
 
-import { useState, useRef, Suspense, useEffect } from 'react'
+import { useState, Suspense, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/components/LanguageContext'
 import { translations } from '@/lib/translations'
-import type { BookingDraft, GroomingStyle, Service } from '@/types'
+import type { BookingDraft, Service } from '@/types'
 import { useServices } from '@/lib/hooks/useServices'
-import { useStyles } from '@/lib/hooks/useStyles'
 import { DOG_BREEDS } from '@/lib/data'
 import { supabase } from '@/utils/supabase/client'
 import { useSearchParams } from 'next/dist/client/components/navigation'
 import BreedAutoComplete from '@/components/ui/BreedAutoComplete'
 
-type Step = 1 | 2 | 3 | 4
+type Step = 1 | 2 | 3
 
 const BOOKING_DRAFT_STORAGE_KEY = 'pawco:booking-draft'
 
@@ -156,20 +155,30 @@ function DateTimeStep({
   onChange,
   selectedService,
   t,
+  focusDate,
 }: {
   value: string | null
   onChange: (dateTime: string) => void
   selectedService: Service | null
   language: string
   t: any
+  /** YYYY-MM-DD to open on when nothing is picked yet (e.g. from a shared link). */
+  focusDate?: string | null
 }) {
   const { date: initialDate, time: initialTime24 } = splitDateTime(value)
-  const [selectedDate, setSelectedDate] = useState<string | null>()
+  const startDate = initialDate ?? focusDate ?? null
+  const [selectedDate, setSelectedDate] = useState<string | null>(startDate)
   const [selectedTime, setSelectedTime] = useState<string | null>(
     initialTime24 ? to12HourLabel(initialTime24) : null,
   )
 
-  const [viewingDate, setViewingDate] = useState(new Date().getDate() ? new Date() : new Date(new Date().setDate(1)))  // handle edge case for month-end
+  const [viewingDate, setViewingDate] = useState(() => {
+    if (startDate) {
+      const [y, m] = startDate.split('-').map(Number)
+      return new Date(y, m - 1, 1)
+    }
+    return new Date()
+  })
   const [slots, setSlots] = useState<{ time: string; available: boolean }[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
 
@@ -207,6 +216,12 @@ function DateTimeStep({
       setLoadingSlots(false)
     }
   }
+
+  // A pre-picked date (shared link, or coming back to this step) shows its times right away.
+  useEffect(() => {
+    if (startDate) fetchSlots(startDate)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleDateSelect(isoDate: string) {
     setSelectedDate(isoDate)
@@ -329,202 +344,17 @@ function DateTimeStep({
   )
 }
 
-// ─── Step 3 — Style & Photo ───────────────────────────────────────────────────
-function StyleStep({
-  selectedStyle,
-  photoUrls,
-  onStyleSelect,
-  onPhotoUpload,
-  onFilesSelect,
-  onRemovePhoto,
-  language,
-  t,
-}: {
-  selectedStyle: GroomingStyle | null
-  photoUrls: string[]
-  onStyleSelect: (style: GroomingStyle) => void
-  onPhotoUpload: (urls: string[]) => void
-  onFilesSelect: (files: File[]) => void
-  onRemovePhoto: (index: number) => void
-  language: string
-  t: any
-}){
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const { styles, loading, error } = useStyles(language, t)
-
- const handleFileSelect = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const files = Array.from(e.target.files ?? [])
-
-    if (!files.length) return
-
-    // create preview urls
-    const previews = files.map((file) =>
-      URL.createObjectURL(file)
-    )
-
-    // append previews instead of replacing
-    onPhotoUpload([...photoUrls, ...previews])
-
-    // append actual files
-    onFilesSelect(files)
-
-    // IMPORTANT:
-    // reset input so selecting same image again still works
-    e.target.value = ''
-  }
-
-  if (loading) {
-    return (
-      <div className="px-5 pt-3.5 grid grid-cols-2 gap-2.5">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-[140px] rounded-[14px] bg-surface-secondary animate-pulse"
-          />
-        ))}
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <p className="px-5 pt-3.5 text-[14px] text-red-500">
-        {error}
-      </p>
-    )
-  }
-
-  return (
-    <div>
-      <p className="px-5 pt-1 pb-3 font-nunito font-extrabold text-[18px] text-text-primary">
-        {t.booking.chooseStyle}
-      </p>
-
-      <div className="px-5 grid grid-cols-2 gap-2.5">
-        {styles.map((style) => {
-          const active = selectedStyle?.id === style.id
-
-          return (
-            <button
-              key={style.id}
-              onClick={() => onStyleSelect(style)}
-              aria-pressed={active}
-              className={cn(
-                'relative flex flex-col items-center gap-2 p-4 rounded-[18px] border-[1.5px] transition active:scale-[0.97]',
-                active
-                  ? 'border-brand bg-brand-muted'
-                  : 'border-border bg-white',
-              )}
-            >
-              <span className="text-[32px]">
-                {style.emoji}
-              </span>
-
-              <div className="text-center">
-                <p className="text-[15px] font-bold font-nunito text-text-primary">
-                  {style.name}
-                </p>
-
-                <p className="text-[12px] leading-snug text-text-muted mt-0.5">
-                  {style.desc}
-                </p>
-              </div>
-
-              {active && (
-                <i
-                  className="ti ti-circle-check-filled text-brand text-[22px] absolute top-2 right-2"
-                  aria-hidden="true"
-                />
-              )}
-            </button>
-          )
-        })}
-      </div>
-
-    <div className="px-5 mt-5">
-      <p className="font-nunito font-extrabold text-[18px] text-text-primary mb-3">
-        {t.booking.addPhoto}
-      </p>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={handleFileSelect}
-        className="hidden"
-      />
-        {photoUrls.length > 0 ? (
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {photoUrls.map((url, index) => (
-            <div
-              key={index}
-              className="relative rounded-[14px] overflow-hidden bg-border"
-            >
-              <img
-                src={url}
-                alt={`Dog ${index + 1}`}
-                className="w-full h-32 object-cover"
-              />
-
-              <button
-               onClick={() => onRemovePhoto(index)}
-                aria-label="Remove photo"
-                className="absolute top-1.5 right-1.5 w-9 h-9 flex items-center justify-center bg-black/55 text-white rounded-full"
-              >
-                <i className="ti ti-x text-[18px]" />
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="w-full border-2 border-dashed border-border rounded-[14px] py-4 flex items-center justify-center gap-2 hover:border-brand transition-colors"
-        >
-          <i className="ti ti-photo-plus text-[20px] text-text-muted" />
-          <span className="text-[13px] font-semibold text-text-secondary">
-            Add more photos
-          </span>
-        </button>
-      </div>
-    ) : (
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        className="w-full border-2 border-dashed border-border rounded-[14px] py-8 flex flex-col items-center gap-2 hover:border-brand transition-colors"
-      >
-        <i className="ti ti-photo-plus text-[32px] text-text-muted" />
-        <span className="text-[13px] font-semibold text-text-secondary">
-          {t.booking.addPhoto}
-        </span>
-        <span className="text-[11px] text-text-muted">
-          {t.booking.showGroomerWhatYouWant}
-        </span>
-      </button>
-    )}
-  </div>
-    </div>
-  )
-}
-
-// ─── Step 4 — Confirm ────────────────────────────────────────────────────────
+// ─── Step 3 — Confirm ────────────────────────────────────────────────────────
 function ConfirmStep({
   draft,
-  selectedStyle,
   selectedService,
   onChange,
-  serviceNeedsStyle,
   t,
   userDogs
 }: {
   draft: BookingDraft
-  selectedStyle: GroomingStyle | null
   selectedService: Service | null
   onChange: (fields: Partial<BookingDraft>) => void
-  serviceNeedsStyle: boolean
   userDogs: { name: string; breed: string }[]
   t: any
 }) {
@@ -551,9 +381,6 @@ function ConfirmStep({
         {[
           { label: t.booking.service, value: selectedService?.name ?? '—' },
           { label: t.booking.date, value: formatDateTimeDisplay(draft.dateTime) },
-           ...(serviceNeedsStyle
-        ? [{ label: t.booking.style, value: selectedStyle?.name ?? '—' }]
-        : []),
         ].map(({ label, value }) => (
           <div
             key={label}
@@ -673,14 +500,12 @@ function ConfirmStep({
 // ─── Confirmation page ────────────────────────────────────────────────────────
 function ConfirmationPage({
   draft,
-  selectedStyle,
   selectedService,
   onUpdate,
   t,
 }: {
   draft: BookingDraft
   selectedService: Service | null
-  selectedStyle: GroomingStyle | null
   onUpdate: (fields: Partial<BookingDraft>) => void
   t: any
 }) {
@@ -836,12 +661,6 @@ function ConfirmationPage({
           <span className="font-nunito font-extrabold text-[18px] text-brand">${selectedService?.price}</span>
         </div>
 
-        {selectedService?.needs_style && (
-          <div className="flex justify-between">
-            <span className="text-[14px] font-semibold text-text-muted">{t.booking.style}</span>
-            <span className="text-[15px] font-bold text-text-primary text-right">{selectedStyle?.name ?? '—'}</span>
-          </div>
-        )}
       </div>
     </div>
 
@@ -1031,20 +850,24 @@ function BookPageContent() {
   const dogSizeParam = searchParams.get('size')
   const dogNameParam = searchParams.get('dogName')
   const breedParam = searchParams.get('breed') // optional
+  // Links the groomer shares from admin (e.g. in KakaoTalk) can pre-pick the rest:
+  // /book?dogName=Curi&size=M&service=3&date=2026-11-26&time=10:00&kakao=curimom
+  const serviceParam = Number(searchParams.get('service')) || null
+  const dateParam = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.get('date') ?? '') ? searchParams.get('date') : null
+  const timeParam = /^\d{2}:\d{2}$/.test(searchParams.get('time') ?? '') ? searchParams.get('time') : null
+  const kakaoParam = searchParams.get('kakao')
+  const linkDateTime = dateParam && timeParam ? `${dateParam}T${timeParam}:00` : null
+  const fromLink = serviceParam !== null
 
   const { language, setLanguage } = useLanguage()
   const t = translations[language]
-  const { styles } = useStyles(language, t)
   const [step, setStep] = useState<Step>(1)
   const [isConfirmed, setIsConfirmed] = useState(false)
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
-  const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [userDogs, setUserDogs] = useState<{ name: string; breed: string }[]>([])
   const [draft, setDraft] = useState<BookingDraft>({
-    serviceId: null,
-    dateTime: null,
-    styleId: null,
-    photoUrls: [],
+    serviceId: serviceParam,
+    dateTime: linkDateTime,
     dogName: dogNameParam ?? '',
     email: '',
     phone: '',
@@ -1053,7 +876,7 @@ function BookPageContent() {
     bookingId: null,
     user_id: null,
     dogSize: dogSizeParam,
-    kakaoid: ''
+    kakaoid: kakaoParam ?? ''
   })
   const [draftHydrated, setDraftHydrated] = useState(false)
   const { services } = useServices(language, draft.dogSize)
@@ -1061,7 +884,10 @@ function BookPageContent() {
   useEffect(() => {
     try {
       const storedDraft = sessionStorage.getItem(BOOKING_DRAFT_STORAGE_KEY)
-      if (storedDraft) {
+      // A shared link wins over a half-finished draft from an earlier visit.
+      if (fromLink) {
+        sessionStorage.removeItem(BOOKING_DRAFT_STORAGE_KEY)
+      } else if (storedDraft) {
         setDraft((prev) => ({ ...prev, ...JSON.parse(storedDraft) }))
       }
     } catch (error) {
@@ -1103,27 +929,54 @@ useEffect(() => {
   loadUserData()
 }, [])
 
-function handlePhotoFiles(files: File[]) {
-  setPhotoFiles((prev) => [...prev, ...files])
-}
-
 const updateDraft = (fields: Partial<BookingDraft>) =>
   setDraft((prev) => ({ ...prev, ...fields }))
+
+const linkHandled = useRef(false)
+useEffect(() => {
+  if (!fromLink || linkHandled.current || services.length === 0) return
+  linkHandled.current = true
+
+  const linked = services.find((s) => s.id === serviceParam)
+  if (!linked) {
+    // Unknown service id: start from service selection as normal.
+    updateDraft({ serviceId: null, dateTime: null })
+    return
+  }
+  if (!linkDateTime || !dateParam) {
+    setStep(2)
+    return
+  }
+
+  fetch(`/api/availability?date=${dateParam}&slots=${linked.slots ?? 1}`)
+    .then((res) => res.json())
+    .then((json) => {
+      const label = to12HourLabel(`${timeParam}:00`)
+      const free = (json.slots ?? []).some(
+        (s: { time: string; available: boolean }) => s.time === label && s.available,
+      )
+      if (free) {
+        setStep(3)
+      } else {
+        updateDraft({ dateTime: null })
+        setSubmitError(t.booking.linkedTimeTaken ?? 'That time was just taken. Please pick another time.')
+        setStep(2)
+      }
+    })
+    .catch(() => setStep(2))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [services])
 
 function handleServiceSelect(service: Service) {
   updateDraft({ serviceId: service.id, dateTime: null })
 }
 
-  const selectedStyle = styles.find((s) => s.id === draft.styleId) ?? null
-
   const selectedService = services.find((s) => s.id === draft.serviceId) ?? null
-  const serviceNeedsStyle = selectedService?.needs_style ?? false
 
   const canContinue =
   (step === 1 && draft.serviceId !== null) ||
   (step === 2 && draft.dateTime !== null) ||
-  (step === 3 && draft.styleId !== null) ||
-  (step === 4 &&
+  (step === 3 &&
     !!draft.dogName &&
     // !!draft.email &&
     !!draft.phone)
@@ -1131,26 +984,15 @@ function handleServiceSelect(service: Service) {
 const [isSubmitting, setIsSubmitting] = useState(false)
 const [submitError, setSubmitError] = useState<string | null>(null)
 
-function removePhoto(index: number) {
-  setDraft((prev) => ({
-    ...prev,
-    photoUrls: prev.photoUrls.filter((_, i) => i !== index),
-  }))
-
-  setPhotoFiles((prev) => prev.filter((_, i) => i !== index))
-}
-
 async function handleContinue() {
 
 if (isSubmitting) return
 const { data: { session } } = await supabase.auth.getSession()
 const user = session?.user
 
-  if (step === 2 && !serviceNeedsStyle) {
-    setStep(4)
-  } else if (step < 4) {
+  if (step < 3) {
     setStep((s) => (s + 1) as Step)
-  } else if (step === 4) {
+  } else if (step === 3) {
     setIsSubmitting(true)
     setSubmitError(null)
 
@@ -1159,7 +1001,6 @@ const user = session?.user
       service_price:  selectedService?.price,
       duration_slots: selectedService?.slots,
       date_time:      draft.dateTime,
-      style_id:       draft.styleId,
       dog_name:       draft.dogName,
       breed:          draft.breed,
       email:          draft.email,
@@ -1198,22 +1039,6 @@ const user = session?.user
         bookingId: json.booking.id,
       }))
 
-
-      // upload photos AFTER booking succeeds
-      // if (photoFiles.length > 0) {
-      //   const formData = new FormData()
-
-      //   formData.append('bookingId', json.booking.id)
-
-      //   photoFiles.forEach((file) => {
-      //     formData.append('files', file)
-      //   })
-
-      //   await fetch('/api/photos', {
-      //     method: 'POST',
-      //     body: formData,
-      //   })
-      // }
 
       // The admin "new booking" email is sent server-side by POST /api/bookings.
 
@@ -1254,22 +1079,11 @@ if (user) {
 }
 
 useEffect(() => {
-  return () => {
-    draft.photoUrls.forEach((url) => {
-      URL.revokeObjectURL(url)
-    })
-  }
-}, [])
-
-
-useEffect(() => {
   document.getElementById('app-scroll')?.scrollTo({ top: 0 })
 }, [step, isConfirmed, isCreatingAccount])
 
   function handleBack() {
-    if (step === 4 && !serviceNeedsStyle) {
-      setStep(2)
-    } else if (step > 1) {
+    if (step > 1) {
       setStep((s) => (s - 1) as Step)
     }
   }
@@ -1326,7 +1140,6 @@ useEffect(() => {
       <div>
         <ConfirmationPage
           draft={draft}
-          selectedStyle={selectedStyle}
           selectedService={selectedService}
           onUpdate={(fields) => updateDraft(fields)}
           t={t}
@@ -1353,10 +1166,7 @@ useEffect(() => {
         {languageToggle}
       </div>
 
-      <StepIndicator
-        current={serviceNeedsStyle ? step : (step === 4 ? 3 : step) as Step}
-        total={serviceNeedsStyle ? 4 : 3}
-      />
+      <StepIndicator current={step} total={3} />
 
       <div className="flex-1 pb-4">
          {submitError && (
@@ -1381,27 +1191,14 @@ useEffect(() => {
             selectedService={selectedService}
             language={language}
             t={t}
+            focusDate={dateParam}
           />
         )}
         {step === 3 && (
-          <StyleStep
-            selectedStyle={selectedStyle}
-            photoUrls={draft.photoUrls}
-            onStyleSelect={(style) => updateDraft({ styleId: style.id })}
-            onPhotoUpload={(urls) => updateDraft({ photoUrls: urls })}
-            onFilesSelect={handlePhotoFiles}
-            onRemovePhoto={removePhoto}
-            language={language}
-            t={t}
-          />
-        )}
-        {step === 4 && (
           <ConfirmStep
             draft={draft}
-            selectedStyle={selectedStyle}
             selectedService={selectedService}
             onChange={updateDraft}
-            serviceNeedsStyle={serviceNeedsStyle}
             userDogs={userDogs}
             t={t}
           />
@@ -1423,7 +1220,7 @@ useEffect(() => {
           onClick={handleContinue}
           className="w-full bg-brand text-white font-nunito font-bold text-[17px] rounded-full py-[18px] shadow-[0_10px_24px_-12px_rgba(255,107,26,0.7)] disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed transition active:scale-[0.98]"
         >
-          {isSubmitting ? '…' : step === 4 ? t.booking.confirmBookingBtn : t.booking.continue}
+          {isSubmitting ? '…' : step === 3 ? t.booking.confirmBookingBtn : t.booking.continue}
         </button>
       </div>
     </div>
