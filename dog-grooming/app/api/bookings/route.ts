@@ -1,25 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 import { cookies } from "next/headers";
 import { bookingLimiter } from "@/lib/rate-limit";
-
-const ALL_SLOTS = [
-  '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
-  '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM',
-]
-
-// "2026-07-19T09:00:00" -> { date: "2026-07-19", timeLabel: "9:00 AM" }
-function splitDateTime(dateTime: string) {
-  const [date, time] = dateTime.split('T')
-  const [hhStr, mmStr] = time.split(':')
-  const hours = Number(hhStr)
-  const minutes = Number(mmStr)
-  const period = hours >= 12 ? 'PM' : 'AM'
-  let hours12 = hours % 12
-  if (hours12 === 0) hours12 = 12
-  const timeLabel = `${hours12}:${String(minutes).padStart(2, '0')} ${period}`
-  return { date, timeLabel }
-}
+import { ALL_SLOTS, SLOT_HOLDING_STATUSES, fitsAt, occupiedSlotIndices, timeLabelFromDateTime } from '@/lib/slots'
+import { notifyAdmin } from '@/lib/notifyAdmin'
 
 export async function POST(req: Request) {
   const ip = req.headers.get("x-forwarded-for") ?? "anon";
@@ -47,37 +32,49 @@ export async function POST(req: Request) {
     }
   }
 
-  const { date, timeLabel } = splitDateTime(body.date_time)
+  const date = String(body.date_time).split('T')[0]
+  const startIndex = ALL_SLOTS.indexOf(timeLabelFromDateTime(String(body.date_time)))
+  if (startIndex === -1) {
+    return NextResponse.json({ error: 'Invalid time slot' }, { status: 400 })
+  }
 
-  // Check slot is still available (race condition protection)
-  const supabase = await createClient()
-  const { data: existing } = await supabase
+  // Bookings aren't readable or writable by the public directly; this route is
+  // the only way in, so it uses the server-only key after validating the request.
+  const supabase = createAdminClient()
+
+  // How many slots the requested service takes
+  const { data: service } = await supabase
+    .from('services')
+    .select('slots, name_eng')
+    .eq('id', body.service_id)
+    .maybeSingle()
+
+  if (!service) {
+    return NextResponse.json({ error: 'Unknown service' }, { status: 400 })
+  }
+
+  // Check slot is still available (race condition protection). Only active
+  // bookings hold a slot; cancelled/declined ones don't.
+  const { data: existing, error: existingError } = await supabase
     .from('bookings')
     .select('date_time, services(slots)')
     .gte('date_time', `${date}T00:00:00`)
     .lt('date_time', `${date}T23:59:59`)
+    .in('status', SLOT_HOLDING_STATUSES)
 
-  const bookedTimes = new Set<string>()
-
-  for (const booking of existing ?? []) {
-    const { timeLabel: bookedLabel } = splitDateTime(booking.date_time)
-    const startIndex = ALL_SLOTS.indexOf(bookedLabel)
-    const service = (booking.services?.[0] ?? null) as { slots: number } | null
-    for (let i = 0; i < (service?.slots ?? 1); i++) {
-      const slot = ALL_SLOTS[startIndex + i]
-      if (slot) bookedTimes.add(slot)
-    }
+  if (existingError) {
+    return NextResponse.json({ error: existingError.message }, { status: 500 })
   }
 
-  if (bookedTimes.has(timeLabel)) {
+  if (!fitsAt(occupiedSlotIndices(existing ?? []), startIndex, service.slots ?? 1)) {
     return NextResponse.json(
       { error: 'This time slot is no longer available' },
       { status: 409 },
     )
   }
 
-
-  const { data: { user } } = await supabase.auth.getUser()
+  // Who is booking (if signed in) comes from the session cookie, never the body
+  const { data: { user } } = await (await createClient()).auth.getUser()
   // Insert booking
   const { data, error } = await supabase
     .from('bookings')
@@ -98,7 +95,27 @@ export async function POST(req: Request) {
     .single()
 
 if (error) {
+  // 23P01 = bookings_no_overlap exclusion constraint: someone booked this time
+  // between our availability check and the insert.
+  if ((error as { code?: string }).code === '23P01') {
+    return NextResponse.json({ error: 'This time slot is no longer available' }, { status: 409 })
+  }
   return NextResponse.json({ error: error.message }, { status: 500 })
+}
+
+// Email the groomer about the new request. A mail failure must not fail the booking.
+try {
+  await notifyAdmin({
+    service: service.name_eng,
+    phone: data.phone,
+    kakaoid: data.kakaoid,
+    dog_name: data.dog_name,
+    date_time: data.date_time,
+    notes: data.notes,
+    breed: data.breed ?? undefined,
+  })
+} catch (err) {
+  console.error('Admin notification failed:', err)
 }
 
 return NextResponse.json({

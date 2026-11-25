@@ -21,13 +21,16 @@ function mockSupabase({
   const mockDeleteUser = jest.fn().mockResolvedValue({})
 
   const mockInsert = jest.fn().mockResolvedValue({ error: dogError })
-  const mockUpdate = jest.fn().mockResolvedValue({ error: bookingError })
 
-  const mockEq = jest.fn().mockReturnValue({ update: mockUpdate })
+  // bookings.update(...).eq(...).ilike(...).is(...)
+  const mockIs = jest.fn().mockResolvedValue({ error: bookingError })
+  const mockIlike = jest.fn().mockReturnValue({ is: mockIs })
+  const mockEq = jest.fn().mockReturnValue({ ilike: mockIlike })
+  const mockUpdate = jest.fn().mockReturnValue({ eq: mockEq })
+
   const mockFrom = jest.fn().mockReturnValue({
     update: mockUpdate,
     insert: mockInsert,
-    eq: mockEq,
   })
 
   ;(createAdminClient as jest.Mock).mockReturnValue({
@@ -46,6 +49,9 @@ function mockSupabase({
     mockInsert,
     mockUpdate,
     mockEq,
+    mockIlike,
+    mockIs,
+    mockFrom,
   }
 }
 
@@ -113,5 +119,35 @@ it('returns 400 when auth fails', async () => {
 
   expect(res.status).toBe(400)
   expect(await res.json()).toEqual({ error: 'Auth failed' })
+})
+
+it('creates a non-admin profile without the missing full_name column', async () => {
+  const { mockFrom, mockInsert } = mockSupabase()
+
+  await POST(
+    new Request('http://localhost/api', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'test@test.com', password: '123456', fullname: 'Kim' }),
+    })
+  )
+
+  expect(mockFrom).toHaveBeenCalledWith('profiles')
+  expect(mockInsert).toHaveBeenCalledWith({ user_id: 'user-123', email: 'test@test.com', is_admin: false })
+})
+
+it('only links a booking with the same email that has no account yet', async () => {
+  const { mockUpdate, mockEq, mockIlike, mockIs } = mockSupabase()
+
+  await POST(
+    new Request('http://localhost/api', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'test@test.com', password: '123456', bookingId: 'b1' }),
+    })
+  )
+
+  expect(mockUpdate).toHaveBeenCalledWith({ user_id: 'user-123' })
+  expect(mockEq).toHaveBeenCalledWith('id', 'b1')
+  expect(mockIlike).toHaveBeenCalledWith('email', 'test@test.com')
+  expect(mockIs).toHaveBeenCalledWith('user_id', null)
 })
 })

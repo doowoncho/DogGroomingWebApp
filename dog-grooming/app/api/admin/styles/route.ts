@@ -1,7 +1,11 @@
+import { requireAdmin } from "@/lib/requireAdmin";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function PATCH(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   const supabase = createAdminClient();
   try {
     let body: any
@@ -44,6 +48,9 @@ export async function PATCH(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
   const supabase = createAdminClient();
   try {
     let body: any
